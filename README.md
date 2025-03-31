@@ -72,6 +72,7 @@ After building the code, the sample binary `benchmark_barcode_calling` can be us
 
 This project is licensed under the GPL3. See the LICENSE file for details.
 
+todo: explain command line parameters, input and output format
 
 ## Citation
 
