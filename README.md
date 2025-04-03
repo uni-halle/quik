@@ -11,7 +11,7 @@ This repository provides the code and data required to reproduce the results pre
 - [Overview](#overview)
 - [Repository Structure](#repository-structure)
 - [Installation and Dependencies](#installation)
-- [Benchmark Experiments](#benchmark-experiments)
+- [Benchmark Experiment](#benchmark-experiment)
 - [License](#license)
 - [Citation](#citation)
 
@@ -64,11 +64,11 @@ The software has been developed for Linux and has been tested on an Ubuntu 24.04
 
 The `build` directory should now contain several binaries including `benchmark_barcode_calling`, used to compare the accurary and efficiency of various of our barcode calling approaches.
 
-## Benchmark Experiments
+## Benchmark Experiment
 
 After building the code, the sample binary `benchmark_barcode_calling` can be used to reproduce some of the results from our article. 
 
-The benchmark program tries to assign each read in the `<read_file>` to some barcode in the `<barcode_file>`. To assess the accuracy of the barcode assignment, a `<label_file>` is required in which the original barcodes is specified for each read. Usage:
+The benchmark program tries to assign each read in the `<read_file>` to some barcode in the `<barcode_file>`. To assess the accuracy of the barcode assignment, a `<label_file>` is required in which the original barcode is specified for each read. Usage:
 
     benchmark_barcode_calling <barcode_file> <read_file> <label_file> <distance_measure> <rejection_threshold>
 
