@@ -54,7 +54,7 @@ The software has been developed for Linux and has been tested on an Ubuntu 24.04
 
         git clone https://github.com/uni-halle/quick.git
 
-3. Compile the source files. Quik comes with a CMake Script that shold work for various operating systems. CMake will automatically detect whether all mandatory and optional libraries are available at your system.
+3. Compile the source files. Quik comes with a CMake Script that should work for various operating systems. CMake will automatically detect whether all mandatory and optional libraries are available at your system.
 
         cd quik
         mkdir build
@@ -66,13 +66,11 @@ The `build` directory should now contain several binaries including `benchmark_b
 
 ## Usage
 
-After building the code, the sample binary `benchmark_barcode_calling` can be used to reproduce some of the results form our article. 
+After building the code, the sample binary `benchmark_barcode_calling` can be used to reproduce some of the results from our article. 
 
 ## License
 
 This project is licensed under the GPL3. See the LICENSE file for details.
-
-todo: explain command line parameters, input and output format
 
 ## Citation
 
