@@ -48,19 +48,19 @@ The software has been developed for Linux and has been tested on an Ubuntu 24.04
 
 1. Install software packages:
 
-        sudo apt install git cmake g++ libomp-dev nvidia-cuda-toolkit
+       sudo apt install git cmake g++ libomp-dev nvidia-cuda-toolkit
 
 2. Checkout the project.
 
-        git clone https://github.com/uni-halle/quick.git
+       git clone https://github.com/uni-halle/quick.git
 
 3. Compile the source files. Quik comes with a CMake Script that should work for various operating systems. CMake will automatically detect whether all mandatory and optional libraries are available at your system.
 
-        cd quik
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        make
+       cd quik
+       mkdir build
+       cd build
+       cmake -DCMAKE_BUILD_TYPE=Release ..
+       make
 
 The `build` directory should now contain several binaries including `benchmark_barcode_calling`, used to compare the accurary and efficiency of various of our barcode calling approaches.
 
