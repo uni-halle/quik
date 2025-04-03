@@ -68,7 +68,7 @@ The `build` directory should now contain several binaries including `benchmark_b
 
 After building the code, the sample binary `benchmark_barcode_calling` can be used to reproduce some of the results from our article. 
 
-The benchmark program tries to assign each read in the `<read_file>` to some barcode in the `<barcode_file>`. To assess the accuracy of the barcode assignment, a `<label_file>` is required to assess to barcodes from which the reads originated. Usage:
+The benchmark program tries to assign each read in the `<read_file>` to some barcode in the `<barcode_file>`. To assess the accuracy of the barcode assignment, a `<label_file>` is required in which the original barcodes is specified for each read. Usage:
 
     benchmark_barcode_calling <barcode_file> <read_file> <label_file> <distance_measure> <rejection_threshold>
 
