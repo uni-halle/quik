@@ -70,7 +70,7 @@ After building the code, the sample binary `benchmark_barcode_calling` can be us
 
 The benchmark program tries to assign each read in the `<read_file>` to some barcode in the `<barcode_file>`. To assess the accuracy of the barcode assignment, a `<label_file>` is required in which the original barcode is specified for each read. 
 
-The benchmark program will finally present precision and recall for several of our k-mer distance barcode calling approaches and will print the associated running time in milliseconds per read. Usage:
+The benchmark program will run several of our k-mer distance barcode calling approaches and presents the associated precision and recall as well as the running time in milliseconds per read. Usage:
 
     benchmark_barcode_calling <barcode_file> <read_file> <label_file> <distance_measure> <rejection_threshold>
 
