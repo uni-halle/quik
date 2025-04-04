@@ -11,7 +11,7 @@ This repository provides the code and data required to reproduce the results pre
 - [Overview](#overview)
 - [Repository Structure](#repository-structure)
 - [Installation and Dependencies](#installation)
-- [Usage](#usage)
+- [Benchmark Experiment](#benchmark-experiment)
 - [License](#license)
 - [Citation](#citation)
 
@@ -48,31 +48,46 @@ The software has been developed for Linux and has been tested on an Ubuntu 24.04
 
 1. Install software packages:
 
-        sudo apt install git cmake g++ libomp-dev nvidia-cuda-toolkit
+       sudo apt install git cmake g++ libomp-dev nvidia-cuda-toolkit
 
 2. Checkout the project.
 
-        git clone https://github.com/uni-halle/quick.git
+       git clone https://github.com/uni-halle/quick.git
 
-3. Compile the source files. Quik comes with a CMake Script that shold work for various operating systems. CMake will automatically detect whether all mandatory and optional libraries are available at your system.
+3. Compile the source files. Quik comes with a CMake Script that should work for various operating systems. CMake will automatically detect whether all mandatory and optional libraries are available at your system.
 
-        cd quik
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        make
+       cd quik
+       mkdir build
+       cd build
+       cmake -DCMAKE_BUILD_TYPE=Release ..
+       make
 
 The `build` directory should now contain several binaries including `benchmark_barcode_calling`, used to compare the accurary and efficiency of various of our barcode calling approaches.
 
-## Usage
+## Benchmark Experiment
 
-After building the code, the sample binary `benchmark_barcode_calling` can be used to reproduce some of the results form our article. 
+After building the code, the sample binary `benchmark_barcode_calling` can be used to reproduce some of the results from our article. 
+
+The benchmark program tries to assign each read in the `<read_file>` to some barcode in the `<barcode_file>`. To assess the accuracy of the barcode assignment, a `<label_file>` is required in which the original barcode is specified for each read. 
+
+The benchmark program will run several of our k-mer distance barcode calling approaches and presents the associated precision and recall as well as the running time in milliseconds per read. Usage:
+
+    benchmark_barcode_calling <barcode_file> <read_file> <label_file> <distance_measure> <rejection_threshold>
+
+
+| Argument               | Description   |
+|:---------------------|:--------------|
+| `<barcode_file>`     | Text file with one barcode per line: `barcode[0]` ... `barcode[n-1]`. |
+| `<read_file>`        | Text file with one read per line: `read[0]`... `read[m-1]`.           |
+| `<label_file>`       | Text file with m lines of integers: `label[0]` ... `label[m-1]`. The integer `label[i]` is associated to `read[i]` and describes the index of the barcode, from which this read originated. Thus, `read[i]` originated from `barcode[label[i]]`.      |
+| `<distance_measure>` | Distance measure between reads and barcodes. Must be one of the following: `LEVENSHTEIN`, `SEQUENCE_LEVENSHTEIN`. Has an effect on the accurary of the barcode calling process.     |
+| `<rejection_threshold>`  | If a read's distance to the closest barcode is larger than this integer, the read is rejected and remains unassigned. Has a large effect on the accuracy of the barcode calling process.    |
+
+The data directory contains sample files which we used to produce the results in our journal article.
 
 ## License
 
 This project is licensed under the GPL3. See the LICENSE file for details.
-
-todo: explain command line parameters, input and output format
 
 ## Citation
 
