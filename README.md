@@ -1,32 +1,19 @@
 # Quik Barcode Calling
 
-This repository provides the code and data required to reproduce the results presented in the journal article
 
-> Riko Corwin Uphoff, Steffen Schüler, Ivo Grosse and Matthias Müller-Hannemann,
-> Fast barcode calling based on k-mer distances,
-> submitted to PNAS Nexus, 2025.
+ DNA barcodes, which are short DNA strings, are regularly used as tags in pooled sequencing experiments to enable the identification of reads originating from the same sample. A crucial task in the subsequent analysis of pooled sequences is barcode calling, where one must identify the corresponding barcode for each read.
+This task is computationally challenging when the probability of synthesis and sequencing errors is high, like in photolithographic microarray synthesis.
+Here, we propose a simple, yet highly effective new barcode calling approach that uses a filtering technique based on precomputed k-mer lists.
+This approach has a slightly higher accuracy than the state-of-the-art approach, is more than 500 times
+faster than that, and thus allows barcode calling for one million barcodes and one billion reads per day on a server GPU.
 
 
 ## Table of Contents
-- [Overview](#overview)
 - [Repository Structure](#repository-structure)
 - [Installation and Dependencies](#installation)
 - [Benchmark Experiment](#benchmark-experiment)
 - [License](#license)
 - [Citation](#citation)
-
-## Overview
-
-The abstract of the journal article gives a short summary on our work:
-
-> DNA barcodes, which are short DNA strings, are regularly used as tags in pooled sequencing experiments to enable the identification of reads originating from the same sample.
-> A crucial task in the subsequent analysis of pooled sequences is barcode calling, where one must identify the corresponding barcode for each read.
-> This task is computationally challenging when the probability of synthesis and sequencing errors is high, like in photolithographic microarray synthesis.
-> Identifying the most similar barcode for each read is a theoretically attractive solution for barcode calling. However, an all-to-all exact similarity calculation is practically infeasible for applications with millions of barcodes and billions of reads.
-> Hence, several computational approaches for barcode calling have been developed, but the challenge of developing an efficient and precise computational approaches remains.
->Here, we propose a simple, yet highly effective new barcode calling approach that uses a filtering technique based on precomputed $k$-mer lists.
-> We find that this approach has a slightly higher accuracy than the state-of-the-art approach, is more than 500 times
->faster than that, and thus allows barcode calling for one million barcodes and one billion reads per day on a server GPU.
 
 
 ## Repository Structure
@@ -97,7 +84,7 @@ If you use this repository or the associated article, please cite it as follows:
 @article{FastBarcodeCallingBasedOnKMerDistances2025,
   author  = {Riko Corvin Uphoff, Steffen Schüler, Ivo Grosse, Matthias Müller-Hannemann},
   title   = {Fast barcode calling based on k-mer distances},
-  journal = {submitted to PNAS Nexus},
+  journal = {to be announced},
   year    = {2025},
   volume  = {X},
   pages   = {Y-Z},
