@@ -78,16 +78,22 @@ This project is licensed under the GPL3. See the LICENSE file for details.
 
 ## Citation
 
-If you use this repository or the associated article, please cite it as follows:
+If you use this repository or the associated article, please cite:
+
+Riko Corwin Uphoff, Steffen Schüler, Ivo Grosse, Matthias Müller-Hannemann, Fast barcode calling based on k-mer distances, PNAS Nexus, 2026;, pgag001, https://doi.org/10.1093/pnasnexus/pgag001
+
 
 ```
-@article{FastBarcodeCallingBasedOnKMerDistances2025,
-  author  = {Riko Corvin Uphoff, Steffen Schüler, Ivo Grosse, Matthias Müller-Hannemann},
-  title   = {Fast barcode calling based on k-mer distances},
-  journal = {to be announced},
-  year    = {2025},
-  volume  = {X},
-  pages   = {Y-Z},
-  doi     = {DOI link}
+@article{10.1093/pnasnexus/pgag001,
+    author = {Uphoff, Riko Corwin and Schüler, Steffen and Grosse, Ivo and Müller-Hannemann, Matthias},
+    title = {Fast barcode calling based on k-mer distances},
+    journal = {PNAS Nexus},
+    pages = {pgag001},
+    year = {2026},
+    month = {01},
+    issn = {2752-6542},
+    doi = {10.1093/pnasnexus/pgag001},
+    url = {https://doi.org/10.1093/pnasnexus/pgag001},
+    eprint = {https://academic.oup.com/pnasnexus/advance-article-pdf/doi/10.1093/pnasnexus/pgag001/66276546/pgag001.pdf},
 }
 ```
