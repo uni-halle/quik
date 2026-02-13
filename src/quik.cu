@@ -9,6 +9,8 @@
 #include <omp.h>
 #include <thread>
 #include <unordered_map>
+
+#include "barcode_assignment_writer.h"
 #include "barcode_set_bc_reader.h"
 #include "read_set_fastq_reader.h"
 #include "distance/levenshtein_v3.cuh"
@@ -296,7 +298,7 @@ int main(int argc, char** argv) {
     auto end = std::chrono::high_resolution_clock::now();
 
     // output to the standard output stream
-    extended_barcode_assignment_writer(barcodes, reads, ass, rejection_threshold).write(std::cout);
+    barcode_assignment_writer(barcodes, reads, ass, rejection_threshold).write(std::cout);
 
     double running_time_sec = std::chrono::duration<double>(end - start).count();
     if (verbose) {
