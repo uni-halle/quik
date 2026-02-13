@@ -16,7 +16,6 @@
 class sequence {
 
 public:
-    __host__ __device__ virtual ~sequence() = default;
     static constexpr char __nucleotides[] = {'A', 'C', 'G', 'T'};
 
     static void string_to_bytes(const std::string& str, uint8_t* bases) {

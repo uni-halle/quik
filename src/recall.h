@@ -10,19 +10,20 @@
 namespace barcode_calling {
 
     inline double recall(
-
+        const read_set& reads,
         const barcode_assignment& assignment,
-        unsigned read_count) {
+        const int rejection_threshold = INT_MAX) {
 
         unsigned accepted_reads = 0;
 
-        for (unsigned read_id = 0; read_id < read_count; read_id++) {
-            if (assignment.is_assigned_to_some_barcode(read_id)) {
+        for (unsigned read_id = 0; read_id < reads.size(); read_id++) {
+            if (assignment.is_assigned_to_some_barcode(read_id)
+                && assignment.get_distance(read_id) <= rejection_threshold) {
                 accepted_reads++;
             }
         }
 
-        return (double)accepted_reads / read_count;
+        return (double)accepted_reads / reads.size();
     }
 }
 

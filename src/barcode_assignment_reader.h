@@ -26,8 +26,8 @@ namespace barcode_calling {
             std::string line;
 
             // read header
-           /* if (!std::getline(infile, line))
-                throw std::runtime_error("Error! corrupted assignment file");*/
+            if (!std::getline(infile, line))
+                throw std::runtime_error("Error! corrupted assignment file");
 
             /* Read labels from file */
             for (unsigned i = 0; i < reads.size(); ++i) {

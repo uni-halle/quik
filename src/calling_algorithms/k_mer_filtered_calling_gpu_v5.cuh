@@ -343,10 +343,9 @@ namespace barcode_calling {
     class k_mer_filtered_calling_gpu_v5 : public barcode_calling_algorithm {
 
     public:
-        explicit k_mer_filtered_calling_gpu_v5(const distance_measure& dist, unsigned rejection_threshold)
+        explicit k_mer_filtered_calling_gpu_v5(const distance_measure& dist)
             : barcode_calling_algorithm(std::to_string(k) + "_mer_filtered_calling_gpu_v5<"
-                                        + std::to_string(barcodes_per_chunk) + ">",
-                                        dist, rejection_threshold) {
+                                        + std::to_string(barcodes_per_chunk) + ">", dist) {
             if (!dist.get_name().starts_with("weighted"))
                 throw std::runtime_error("Unsupported distance measure!");
         }
@@ -617,10 +616,8 @@ namespace barcode_calling {
             CUDA_CHECK(cudaMemcpy(distances_host.data(), out_distances_dev,
                 reads.size() * sizeof(int32_t), cudaMemcpyDeviceToHost));
 
-            for (unsigned read_id = 0; read_id < reads.size(); read_id++) {
-                if (distances_host[read_id] <= rejection_threshold)
-                    ass.assign_as_1st_barcode(read_id, barcodes_host[read_id], distances_host[read_id]);
-            }
+            for (unsigned read_id = 0; read_id < reads.size(); read_id++)
+                ass.assign_as_1st_barcode(read_id, barcodes_host[read_id], distances_host[read_id]);
 
             // 2nd closest barcodes with distances
             CUDA_CHECK(cudaMemcpy(barcodes_host.data(), out_barcodes_dev + reads.size(),
@@ -628,10 +625,8 @@ namespace barcode_calling {
             CUDA_CHECK(cudaMemcpy(distances_host.data(), out_distances_dev + reads.size(),
                 reads.size() * sizeof(int32_t), cudaMemcpyDeviceToHost));
 
-            for (unsigned read_id = 0; read_id < reads.size(); read_id++) {
-                if (distances_host[read_id] <= rejection_threshold)
-                    ass.assign_as_2nd_barcode(read_id, barcodes_host[read_id], distances_host[read_id]);
-            }
+            for (unsigned read_id = 0; read_id < reads.size(); read_id++)
+                ass.assign_as_2nd_barcode(read_id, barcodes_host[read_id], distances_host[read_id]);
 
             /************************************************************************************************
              * Free the memory.

@@ -23,10 +23,8 @@ namespace barcode_calling {
               unsigned MAX_INDEX_SIZE = 100>
     struct k_mer_filtered_calling_host_v2 : public barcode_calling_algorithm {
 
-        explicit k_mer_filtered_calling_host_v2(const distance_measure& dist,
-                                                unsigned rejection_threshold)
-            : barcode_calling_algorithm(std::to_string(k) + "_mer_filtered_calling_host_v2",
-                                        dist, rejection_threshold) {}
+        explicit k_mer_filtered_calling_host_v2(const distance_measure& dist)
+            : barcode_calling_algorithm(std::to_string(k) + "_mer_filtered_calling_host_v2", dist) {}
 
         /**
          * Run the algorithm
@@ -190,10 +188,8 @@ namespace barcode_calling {
                  * Select the barcode with smallest and second-to-smallest SL-distance
                  ***************************************************************************************************/
 
-                if (index[0].distance <= rejection_threshold)
-                    ass.assign_as_1st_barcode(read_id, index[0].barcode_id, index[0].distance);
-                if (index[1].distance <= rejection_threshold)
-                    ass.assign_as_2nd_barcode(read_id, index[0].barcode_id, index[0].distance);
+                ass.assign_as_1st_barcode(read_id, index[0].barcode_id, index[0].distance);
+                ass.assign_as_2nd_barcode(read_id, index[1].barcode_id, index[1].distance);
             }
 
             /****************************************************************************************************

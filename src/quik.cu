@@ -9,13 +9,12 @@
 #include <omp.h>
 #include <thread>
 #include <unordered_map>
-
 #include "barcode_set_bc_reader.h"
 #include "read_set_fastq_reader.h"
 #include "distance/levenshtein_v3.cuh"
 #include "distance/weighted_levenshtein_v1.cuh"
 #include "distance/sequence_levenshtein_v3.cuh"
-#include "barcode_assignment_writer.h"
+#include "extended_barcode_assignment_writer.h"
 #include "number_of_assigned_reads.h"
 #include "calling_algorithms/k_mer_filtered_calling_gpu_v5.cuh"
 #include "calling_algorithms/two_step_k_mer_filtered_calling_gpu_v1.cuh"
@@ -62,13 +61,13 @@ Optional arguments:
                             Possible values:
 
                               4-mer-filter
-                                  High accuracy, much faster than no-filter
+                                  Highest accuracy, slowest filter method
 
                               5-mer-filter
-                                  Decent accuracy, even faster than 4-mer-filter
+                                  Decent accuracy, faster than 4-mer-filter
 
                               6-mer-filter
-                                  Low accuracy, much faster than 5-mer-filter
+                                  Low accuracy, faster than 5-mer-filter
 
                               7-mer-filter
                                   Lowest accuracy, fastest method
@@ -90,13 +89,11 @@ Output:
   quik writes one line per assigned read to the standard output.
   Fields are tab-separated and have the following meaning:
 
-    read           Sequence identifier of each read (exactly once)
+    read           Sequence identifier of each read (at most once)
+    barcode        Sequence identifier of closest barcode
+    distance       Distance between read and barcode
 
-    barcode        Sequence identifier of associated barcode
-
-    distance       Distance between read and barcode.
-
-  Unassigned reads do not occur in the output.
+  Reads with distance > threshold-distance do not occur in the output.
 
 Examples:
   # Basic usage on GPU
@@ -191,7 +188,6 @@ int main(int argc, char** argv) {
 
     std::string method_str = get_arg(args, "method", "m", "4-mer-filter");
     std::string distance_str = get_arg(args, "distance", "d", "sequence-levenshtein");
-    std::string cost_file = get_arg(args, "costs", "c");
     std::string threshold_str = get_arg(args, "threshold_distance", "t", "");
 
     // load barcode and reads from disk
@@ -209,23 +205,10 @@ int main(int argc, char** argv) {
     }
 
     // read threshold
-    int32_t threshold_distance = INT32_MAX;
+    int32_t rejection_threshold = INT32_MAX;
     if (!threshold_str.empty())
-        threshold_distance = std::stoi(threshold_str);
+        rejection_threshold = std::stoi(threshold_str);
 
-    /****************************************************************************
-     * Select the cost for the distance measure.
-     ***************************************************************************/
-
-    std::unique_ptr<alignment_costs> costs;
-
-    // if no costs are given, use uniform costs
-    if (cost_file.empty()) {
-        costs = std::make_unique<unit_costs>();
-    } else { // explicit costs are given
-        // load costs from disk
-        costs = std::make_unique<alignment_costs>(cost_file);
-    }
 
     /****************************************************************************
      * Select the distance function. We use weighted variants in all cases.
@@ -233,9 +216,9 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<distance_measure> dist;
     if (distance_str == "levenshtein")
-        dist = std::make_unique<weighted_levenshtein_v1>(*costs);
+        dist = std::make_unique<weighted_levenshtein_v1>(unit_costs());
     else if (distance_str == "sequence-levenshtein")
-        dist = std::make_unique<weighted_sequence_levenshtein_v1>(*costs);
+        dist = std::make_unique<weighted_sequence_levenshtein_v1>(unit_costs());
     else {
         std::cerr << "Error! Unknown distance!" << std::endl;
         return 3;
@@ -274,50 +257,33 @@ int main(int argc, char** argv) {
         gpu_name = prop.name;
 
         if (method_str == "4-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<4>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<4>>(*dist);
         else if (method_str == "5-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<5>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<5>>(*dist);
         else if (method_str == "6-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<6>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<6>>(*dist);
         else if (method_str == "7-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<7>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<7>>(*dist);
         else if (method_str == "7-4-mer-filter")
-            alg = std::make_unique<two_step_k_mer_filtered_calling_gpu_v1<7,4>>(*dist, threshold_distance);
+            alg = std::make_unique<two_step_k_mer_filtered_calling_gpu_v1<7,4>>(*dist, rejection_threshold);
         else {
             throw std::runtime_error("Unknown barcode calling method.");
         }
     }
     else {
         if (method_str == "4-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<4>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_host_v2<4>>(*dist);
         else if (method_str == "5-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<5>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_host_v2<5>>(*dist);
         else if (method_str == "6-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<6>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_host_v2<6>>(*dist);
         else if (method_str == "7-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<7>>(*dist, threshold_distance);
+            alg = std::make_unique<k_mer_filtered_calling_host_v2<7>>(*dist);
         else if (method_str == "7-4-mer-filter")
-            alg = std::make_unique<two_step_k_mer_filtered_calling_host_v1<7,4>>(*dist, threshold_distance);
+            alg = std::make_unique<two_step_k_mer_filtered_calling_host_v1<7,4>>(*dist, rejection_threshold);
         else {
             throw std::runtime_error("Unknown barcode calling method.");
         }
-    }
-
-    if (verbose) {
-
-        // print debug information
-        std::cerr << "barcode_file             = " << barcode_file << std::endl;
-        std::cerr << "read_file                = " << read_file << std::endl;
-        std::cerr << "barcode_count            = " << barcodes.size() << std::endl;
-        std::cerr << "read_count               = " << reads.size() << std::endl;
-        std::cerr << "BARCODE_LENGTH           = " << BARCODE_LENGTH << std::endl;
-        std::cerr << "costs                    = " << costs->to_compact_string() << std::endl;
-        std::cerr << "method                   = " << alg->get_name() << std::endl;
-        std::cerr << "distance                 = " << dist->get_name() << std::endl;
-        std::cerr << "threshold_distance       = " << threshold_distance << std::endl;
-        std::cerr << "OMP_NUM_THREADS          = " << omp_get_max_threads() << std::endl;
-        std::cerr << "GPU                      = " << gpu_name << std::endl;
-        std::cerr << "--------------------------------------------------------------------------------" << std::endl;
     }
 
     // start measuring running time
@@ -330,11 +296,24 @@ int main(int argc, char** argv) {
     auto end = std::chrono::high_resolution_clock::now();
 
     // output to the standard output stream
-    barcode_assignment_writer(barcodes, reads, ass).write(std::cout);
+    extended_barcode_assignment_writer(barcodes, reads, ass, rejection_threshold).write(std::cout);
 
     double running_time_sec = std::chrono::duration<double>(end - start).count();
     if (verbose) {
-        unsigned num_assigned = number_of_assigned_reads(reads, ass);
+
+        // print debug information
+        std::cerr << "barcode_file             = " << barcode_file << std::endl;
+        std::cerr << "read_file                = " << read_file << std::endl;
+        std::cerr << "barcode_count            = " << barcodes.size() << std::endl;
+        std::cerr << "read_count               = " << reads.size() << std::endl;
+        std::cerr << "BARCODE_LENGTH           = " << BARCODE_LENGTH << std::endl;
+        std::cerr << "method                   = " << alg->get_name() << std::endl;
+        std::cerr << "distance                 = " << dist->get_name() << std::endl;
+        std::cerr << "rejection_threshold      = " << rejection_threshold << std::endl;
+        std::cerr << "OMP_NUM_THREADS          = " << omp_get_max_threads() << std::endl;
+        std::cerr << "GPU                      = " << gpu_name << std::endl;
+
+        unsigned num_assigned = number_of_assigned_reads(reads, ass, rejection_threshold);
         float percent_assigned = 100.0 * num_assigned / reads.size();
         std::cerr << "total running time (sec) = " << running_time_sec << std::endl;
         std::cerr << "number of assigned reads = " << num_assigned << " ("

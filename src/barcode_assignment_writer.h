@@ -22,19 +22,17 @@ namespace barcode_calling {
         barcode_assignment_writer(
             const barcode_set& barcodes,
             const read_set& reads,
-            const barcode_assignment& ass) {
+            const barcode_assignment& ass,
+            const int rejection_threshold = INT_MAX) {
 
             //ss << "read\tbarcode\tdistance\n";
             for (unsigned read_id = 0; read_id < reads.size(); ++read_id) {
 
                 // truncate everything right of the first whitespace
-                if (ass.is_assigned_to_some_barcode(read_id)) {
-                    std::string line = reads.get_name_of(read_id);
-                    ss << line << "\t";
-
-                    line = barcodes.get_name_of(ass.get_assigned_barcode(read_id));
-                    ss << line;
-                    ss << "\t" << ass.get_distance(read_id) << "\n";
+                if (ass.get_distance(read_id) <= rejection_threshold) {
+                    ss << reads.get_name_of(read_id) << "\t";
+                    ss << barcodes.get_name_of(ass.get_assigned_barcode(read_id)) << "\t";
+                    ss << ass.get_distance(read_id) << "\n";
                 }
             }
         }

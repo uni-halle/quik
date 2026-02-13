@@ -18,9 +18,9 @@ Our software has been developed for Linux. The following steps are required to i
 
 2. Checkout the project.
 
-       git clone https://github.com/uni-halle/quick.git
+       git clone https://github.com/uni-halle/quik.git
 
-3. Compile the source files. Quik comes with a CMake Script that should work for various environments. 
+3. Compile the source files. Quik comes with a CMake Script that should work for various environments.
 
    **Important**: Quik assumes a barcode set in which all barcodes have the same length. You need to specify this length during the build process using the option `-DBARCODE_LENGTH`. The following example uses barcodes of length 34.
 
@@ -33,9 +33,9 @@ Our software has been developed for Linux. The following steps are required to i
 
 The `build` directory should now contain three binaries:
 
-  - `quik` is the main tool used to assign reads to barcodes.
-  - `benchmark_barcode_calling` is an auxiliary program to test and compare the efficiency and accuracy of quik's different filtering techniques on your system.
-  - `simulate_errors` is an auxiliary program used to create our synthetic test data.
+- `quik` is the main tool used to assign reads to barcodes.
+- `benchmark_barcode_calling` is an auxiliary program to test and compare the efficiency and accuracy of quik's different filtering techniques on your system.
+- `simulate_errors` is an auxiliary program used to create our synthetic test data.
 
 All binaries explain their usage when executed without arguments.
 
@@ -74,12 +74,12 @@ Optional arguments:
 
   -m, --method <STRING>     Barcode matching method
                             Possible values:
-
+                            
                               4-mer-filter
-                                  High accuracy, much faster than no-filter
+                                  Highest accuracy, slowest filtering variant
 
                               5-mer-filter
-                                  Decent accuracy, even faster than 4-mer-filter
+                                  Decent accuracy, faster than 4-mer-filter
 
                               6-mer-filter
                                   Low accuracy, much faster than 5-mer-filter
@@ -104,13 +104,12 @@ Output:
   quik writes one line per assigned read to the standard output.
   Fields are tab-separated and have the following meaning:
 
-    read           Sequence identifier of each read (exactly once)
+    read           Sequence identifier of each read (at most once)
+    barcode        Sequence identifier of closest barcode
+    distance       Distance between read and barcode
 
-    barcode        Sequence identifier of associated barcode
+  Reads with distance > threshold-distance do not occur in the output.
 
-    distance       Distance between read and barcode.
-
-  Unassigned reads do not occur in the output.
 
 Examples:
   # Basic usage on GPU
@@ -122,7 +121,7 @@ Examples:
 
 ## Data
 
-The data directory contains sample files that can be used for testing and which we used to produce some of the results in our journal article. 
+The data directory contains sample files that can be used for testing and which we used to produce some of the results in our journal article.
 The reads and ground truth assignments in this directory have been created from the auxiliary tool `simulate_errors` using `prob=0.2`.
 
 

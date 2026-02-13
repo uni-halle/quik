@@ -22,6 +22,9 @@ configure_file(
         ${CMAKE_BINARY_DIR}/generated/constants.h
 )
 
+
+
+
 find_package(OpenMP REQUIRED)
 
 add_executable(simulate_errors
@@ -48,8 +51,6 @@ add_executable(benchmark_barcode_calling
         src/extended_barcode_assignment.h
         src/distance/distance_measure.h
         src/calling_algorithms/barcode_calling_algorithm.h
-        src/calling_algorithms/dummy_algorithm_wait_1s.h
-        src/calling_algorithms/k_mer_map_dev_v1.h
 )
 
 # Aktivieren von OpenMP für den Host-Compiler
@@ -95,5 +96,4 @@ target_include_directories(simulate_errors PRIVATE
         ${CMAKE_BINARY_DIR}/generated
 )
 
-# get rid of warning
 target_compile_options(quik PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)

@@ -17,14 +17,12 @@ namespace barcode_calling {
     protected:
         const std::string name;
         const distance_measure& dist;
-        unsigned rejection_threshold;
 
     public:
 
         barcode_calling_algorithm(const std::string& name,
-                                  const distance_measure& dist = sequence_levenshtein_v4(),
-                                  unsigned rejection_threshold = 10)
-            : name(name), dist(dist), rejection_threshold(rejection_threshold) {};
+                                  const distance_measure& dist = sequence_levenshtein_v4())
+            : name(name), dist(dist) {};
 
         virtual ~barcode_calling_algorithm() = default;
 

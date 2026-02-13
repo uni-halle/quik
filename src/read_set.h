@@ -5,6 +5,7 @@
 #ifndef READ_SET_H
 #define READ_SET_H
 
+#include <unordered_map>
 #include <vector>
 #include "read.h"
 

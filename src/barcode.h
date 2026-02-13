@@ -11,7 +11,6 @@
 class barcode : public sequence_fixed_length<BARCODE_LENGTH> {
 
 public:
-
     barcode(const std::string& str) : sequence_fixed_length<BARCODE_LENGTH>(str) {}
 
 };

@@ -16,6 +16,7 @@
 #include "../recall.h"
 #include <omp.h>
 #include <thread>
+#include "constants.h"
 #include "../distance/levenshtein_v1.cuh"
 #include "../distance/levenshtein_v2.cuh"
 #include "../distance/levenshtein_v3.cuh"
@@ -26,14 +27,14 @@
 #include "../barcode_set_bc_reader.h"
 #include "../read_set_fastq_reader.h"
 #include "../barcode_assignment_reader.h"
-#include "dummy_algorithm_wait_1s.h"
 
 using namespace barcode_calling;
 
 void benchmark_algorithm(const barcode_calling_algorithm& algorithm,
                          const barcode_set& barcodes,
                          const read_set& reads,
-                         const barcode_assignment& ground_truth
+                         const barcode_assignment& ground_truth,
+                         const int rejection_threshold
 ) {
     // start measuring running time
     auto start = std::chrono::high_resolution_clock::now();
@@ -49,31 +50,33 @@ void benchmark_algorithm(const barcode_calling_algorithm& algorithm,
 
     std::cout << algorithm.get_name() << "\t"
         << duration.count() / reads.size() << "\t"
-        << precision(ass, ground_truth, reads.size()) << "\t"
-        << recall(ass, reads.size()) << "\t"
+        << precision(reads, ass, ground_truth, rejection_threshold) << "\t"
+        << recall(reads, ass, rejection_threshold) << "\t"
         << std::endl;
 }
-
 
 int main(int argc, char** argv) {
 
     if (argc != 6) {
         std::cerr <<
-            "Usage: ./benchmark_barcode_calling <barcode_file> <read_file> <ground_truth> <distance_measure> <rejection_threshold>"
+            "Usage: ./benchmark_barcode_calling <barcode_file> <read_file> <label_file> <distance_measure> <rejection_threshold>"
             << std::endl;
         std::cerr << "  barcode_file: \n"
-            "      BC file containing the barcodes (Two lines per barcode)" << std::endl;
+            "      Text file with one barcode per line: barcode[0]...barcode[n-1]." << std::endl;
         std::cerr << "  read_file: \n"
-            "      FASTQ file containing the reads." << std::endl;
-        std::cerr << "  ground_truth: \n"
-            "      Assignment file in which each read is assigned to its original barcode." << std::endl;
+            "      Text file with one read per line: read[0]...read[m-1]." << std::endl;
+        std::cerr << "  label_file: \n"
+            "      Text file with m lines: label[0]...label[m-1].\n"
+            "      The label[i] is associated to the read[i] and describes the\n"
+            "      index of the barcode, from which this read originated.\n"
+            "      Thus, read[i] originated from barcode[label[i]]." << std::endl;
         std::cerr << "  distance_measure: One of the following:\n" <<
             "       levenshtein\n" <<
-            "       sequence-levenshtein" <<
+            "       sequence_levenshtein\n" <<
             std::endl;
-        std::cerr << "  rejection_threshold:\n"
-            "       A read is assigned to a barcode only if their associated distance is not\n"
-            "       larger than this integer." << std::endl;
+        std::cerr << "  rejection_threshold: "
+            "       A read is assigned to the closest barcodes only if its distance not "
+            "       larger than the rejection threshold." << std::endl;
         return 0;
     }
 
@@ -93,7 +96,7 @@ int main(int argc, char** argv) {
     std::unique_ptr<distance_measure> distance;
     if (distance_measure_str == "levenshtein")
         distance = std::make_unique<weighted_levenshtein_v1>(unit_costs());
-    else if (distance_measure_str == "sequence-levenshtein")
+    else if (distance_measure_str == "sequence_levenshtein")
         distance = std::make_unique<weighted_sequence_levenshtein_v1>(unit_costs());
     else {
         std::cerr << "unsupported distance measure: " << distance_measure_str << std::endl;
@@ -111,62 +114,49 @@ int main(int argc, char** argv) {
     std::cout << "--------------------------------" << std::endl;
     std::cout << "strategy\tms_per_read\tprecision\trecall" << std::endl;
 
-
     /****************************************************
      * k-mer-filterted_calling_host_v2
      * k=4,5,6,7
      ***************************************************/
 
     benchmark_algorithm(k_mer_filtered_calling_host_v2<4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+                        (*distance), barcodes, reads, ground_truth, rejection_threshold);
     benchmark_algorithm(k_mer_filtered_calling_host_v2<5>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+                        (*distance), barcodes, reads, ground_truth, rejection_threshold);
     benchmark_algorithm(k_mer_filtered_calling_host_v2<6>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+                        (*distance), barcodes, reads, ground_truth, rejection_threshold);
     benchmark_algorithm(k_mer_filtered_calling_host_v2<7>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+                        (*distance), barcodes, reads, ground_truth, rejection_threshold);
 
     /****************************************************
      * k-mer-filterted_calling_gpu_v4
      * k=4,5,6,7
      ***************************************************/
 
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<5>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<6>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<7>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<4>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<5>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<6>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v4<7>(*distance), barcodes, reads, ground_truth, rejection_threshold);
 
     /****************************************************
      * k-mer-filterted_calling_gpu_v5
      * k=4,5,6,7
      ***************************************************/
 
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<4, 2048>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<5, 2048>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<6, 2048>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<7, 2048>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<4, 2048>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<5, 2048>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<6, 2048>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v5<7, 2048>(*distance), barcodes, reads, ground_truth, rejection_threshold);
 
     /****************************************************
      * k-mer-filterted_calling_gpu_v6
      * k=4,5,6,7
      ***************************************************/
 
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<4, 512>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<5, 512>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<6, 512>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<7, 512>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<4, 512>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<5, 512>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<6, 512>(*distance), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(k_mer_filtered_calling_gpu_v6<7, 512>(*distance), barcodes, reads, ground_truth, rejection_threshold);
 
     /****************************************************
      * two_step_ilterted_calling_host_v1
@@ -174,12 +164,12 @@ int main(int argc, char** argv) {
      * k_small=4
      ***************************************************/
 
-    benchmark_algorithm(two_step_k_mer_filtered_calling_host_v1<7, 4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(two_step_k_mer_filtered_calling_host_v1<6, 4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
     benchmark_algorithm(two_step_k_mer_filtered_calling_host_v1<5, 4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+                        (*distance, rejection_threshold), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(two_step_k_mer_filtered_calling_host_v1<6, 4>
+                        (*distance, rejection_threshold), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(two_step_k_mer_filtered_calling_host_v1<7, 4>
+                        (*distance, rejection_threshold), barcodes, reads, ground_truth, rejection_threshold);
 
     /****************************************************
      * two_step_ilterted_calling_gpu_v1
@@ -187,12 +177,13 @@ int main(int argc, char** argv) {
      * k_small=4
      ***************************************************/
 
-    benchmark_algorithm(two_step_k_mer_filtered_calling_gpu_v1<7, 4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
-    benchmark_algorithm(two_step_k_mer_filtered_calling_gpu_v1<6, 4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
     benchmark_algorithm(two_step_k_mer_filtered_calling_gpu_v1<5, 4>
-                        (*distance, rejection_threshold), barcodes, reads, ground_truth);
+                        (*distance, rejection_threshold), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(two_step_k_mer_filtered_calling_gpu_v1<6, 4>
+                        (*distance, rejection_threshold), barcodes, reads, ground_truth, rejection_threshold);
+    benchmark_algorithm(two_step_k_mer_filtered_calling_gpu_v1<7, 4>
+                        (*distance, rejection_threshold), barcodes, reads, ground_truth, rejection_threshold);
+
 
     return 0;
 }
