@@ -1,37 +1,16 @@
 # Quik Barcode Calling
 
 
- DNA barcodes, which are short DNA strings, are regularly used as tags in pooled sequencing experiments to enable the identification of reads originating from the same sample. A crucial task in the subsequent analysis of pooled sequences is barcode calling, where one must identify the corresponding barcode for each read.
+DNA barcodes, which are short DNA strings, are regularly used as tags in pooled sequencing experiments to enable the identification of reads originating from the same sample. A crucial task in the subsequent analysis of pooled sequences is barcode calling, where one must identify the corresponding barcode for each read.
 This task is computationally challenging when the probability of synthesis and sequencing errors is high, like in photolithographic microarray synthesis.
 Here, we propose a simple, yet highly effective new barcode calling approach that uses a filtering technique based on precomputed k-mer lists.
 This approach has a slightly higher accuracy than the state-of-the-art approach, is more than 500 times
 faster than that, and thus allows barcode calling for one million barcodes and one billion reads per day on a server GPU.
 
 
-## Table of Contents
-- [Repository Structure](#repository-structure)
-- [Installation and Dependencies](#installation)
-- [Benchmark Experiment](#benchmark-experiment)
-- [License](#license)
-- [Citation](#citation)
-
-
-## Repository Structure
-
-```
-📦 Quik
-├── 📁 data/ # Barcode read file required to reproduce our experiments data 
-├── 📁 src/ # Source code for analyses and experiments 
-├── 📁 results/ # Output data, plots, or tables 
-├── 📄 README.md # This file 
-├── 📄 CMakeLists.txt # CMake file for installation
-└── 📄 LICENSE # License file
-```
-
- 
 ## Installation
 
-The software has been developed for Linux and has been tested on an Ubuntu 24.04 system. The following steps are required for installation:
+Our software has been developed for Linux. The following steps are required for installation on a Ubuntu 24.04 system:
 
 1. Install software packages:
 
@@ -41,36 +20,80 @@ The software has been developed for Linux and has been tested on an Ubuntu 24.04
 
        git clone https://github.com/uni-halle/quick.git
 
-3. Compile the source files. Quik comes with a CMake Script that should work for various operating systems. CMake will automatically detect whether all mandatory and optional libraries are available at your system.
+3. Compile the source files. Quik comes with a CMake Script that should work for various environments. 
+
+   **Important**: Quik assumes a barcode set in which all barcodes have the same length. You need to specify this length during the build process using the option `-DBARCODE_LENGTH`. The following example uses barcodes of length 34.
+
 
        cd quik
        mkdir build
        cd build
-       cmake -DCMAKE_BUILD_TYPE=Release ..
+       cmake -DCMAKE_BUILD_TYPE=Release -DBARCODE_LENGTH=34 ..
        make
 
-The `build` directory should now contain several binaries including `benchmark_barcode_calling`, used to compare the accurary and efficiency of various of our barcode calling approaches.
+The `build` directory should now contain three binaries:
 
-## Benchmark Experiment
+  - `quik` is the main tool used to assign reads to barcodes.
+  - `benchmark_barcode_calling` is an auxiliary program to test and compare the efficiency and accuracy of quik's different filtering techniques on your system.
+  - `simulate_errors` is an auxiliary program used to create our synthetic test data.
 
-After building the code, the sample binary `benchmark_barcode_calling` can be used to reproduce some of the results from our article. 
+All binaries explain their usage when executed without arguments.
 
-The benchmark program tries to assign each read in the `<read_file>` to some barcode in the `<barcode_file>`. To assess the accuracy of the barcode assignment, a `<label_file>` is required in which the original barcode is specified for each read. 
+## Usage
 
-The benchmark program will run several of our k-mer distance barcode calling approaches and presents the associated precision and recall as well as the running time in milliseconds per read. Usage:
+The `quik` command line tool is used in the following way:
 
-    benchmark_barcode_calling <barcode_file> <read_file> <label_file> <distance_measure> <rejection_threshold>
+    quik --barcodes <FILE> --reads <FILE> [OPTIONS]
+
+### Required Arguments 
+
+| Argument | Description                                                                                                                                                                                                                         |
+|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `-b, --barcodes <FILE>` | Barcode file in our custom **BC format** (which is a subset of the FASTQ format).<br><br>Such files contain two line-separated fields per barcode:<br>- Field 1 begins with `@` and is followed by a barcode identifier (similar to FASTQ).<br>- Field 2 contains the raw sequence letters. |
+| `-r, --reads <FILE>` | Read file in **FASTQ format**.                                                                                                                                                                                                      |
+
+### Optional Arguments
+
+| Argument                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                        |
+|----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `-d, --distance <STRING>`        | Distance measure specification.<br><br>Possible values:<br>- `levenshtein`<br>- `sequence-levenshtein`<br><br>Default: `sequence-levenshtein`                                                                                                                                                                                                                                                                                      |
+| `-t, --threshold_distance <INT>` | Maximum allowed distance between read and barcode.<br><br>A read is only assigned if its distance is not larger than this threshold.<br><br>Default: `2,147,483,647` (`INT32_MAX`)                                                                                                                                                                                                                                                 |
+| `-c, --costs <FILE>`             | Cost file used for the distance measure.<br><br>File contains lines of the form:<br>`<x> <y> <c_xy>`<br><br>Where:<br>- `<x>` and `<y>` are characters from `{A,C,G,T,-}`<br>- `<c_xy>` is a integral alignment cost<br><br>Missing base pairs imply zero alignment cost.<br><br>Default: `1` for each substitution, deletion, or mismatch. Zero for matches.                                                                      |
+| `-m, --method <STRING>`          | Barcode matching method.<br><br>Possible values:<br>- `no-filter` — best accuracy, extremely slow<br>- `4-mer-filter` — high accuracy, much faster<br>- `5-mer-filter` — decent accuracy, even faster<br>- `6-mer-filter` — low accuracy, much faster<br>- `7-mer-filter` — lowest accuracy, fastest method<br>- `7-4-mer-filter` — runs `7-mer-filter` first, then `4-mer-filter` to assign the remaining reads.<br><br>Default: `4-mer-filter` |
+| `-g, --gpu`                      | Run the calculations on the GPU. This is usually faster than the standard mode.                                                                                                                                                                                                                                                                                                                                                    |
+| `-v, --verbose`                  | Print extra information to the standard error stream.                                                                                                                                                                                                                                                                                                                                                                              |
+| `-h, --help`                     | Show this help message and exit.                                                                                                                                                                                                                                                                                                                                                                                                   |
+
+### Output Format
+
+Quik writes one line per assigned read to the standard output. Each line has three tab-separated fields:
+
+| Field      | Meaning                                         |
+|------------|-------------------------------------------------|
+| `read`     | Sequence identifier of each read (at most once) |
+| `barcode`  | Sequence identifier of the associated barcode   |
+| `distance` | Distance between read and barcode               |
+
+Unassigned reads do not occur in the output.
+
+### Example Usage
+
+```bash
+# Basic usage
+quik -b barcodes.fq -r reads.fq
+
+# Use 4-mer filtering and sequence-based Levenshtein distance
+quik -b bc.fq -r reads.fq -m 4-mer-filter -d sequence-levenshtein
+
+# Custom cost matrix on GPU
+quik --barcodes bc.fq --reads reads.fq --costs costs.txt --gpu
+```
+
+## Data
+
+The data directory contains sample files that can be used for testing and which we used to produce some of the results in our journal article.
 
 
-| Argument               | Description   |
-|:---------------------|:--------------|
-| `<barcode_file>`     | Text file with one barcode per line: `barcode[0]` ... `barcode[n-1]`. |
-| `<read_file>`        | Text file with one read per line: `read[0]`... `read[m-1]`.           |
-| `<label_file>`       | Text file with m lines of integers: `label[0]` ... `label[m-1]`. The integer `label[i]` is associated to `read[i]` and describes the index of the barcode, from which this read originated. Thus, `read[i]` originated from `barcode[label[i]]`.      |
-| `<distance_measure>` | Distance measure between reads and barcodes. Must be one of the following: `LEVENSHTEIN`, `SEQUENCE_LEVENSHTEIN`. Has an effect on the accurary of the barcode calling process.     |
-| `<rejection_threshold>`  | If a read's distance to the closest barcode is larger than this integer, the read is rejected and remains unassigned. Has a large effect on the accuracy of the barcode calling process.    |
-
-The data directory contains sample files which we used to produce the results in our journal article.
 
 ## License
 

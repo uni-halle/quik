@@ -1,0 +1,11 @@
+//
+// Created by steffen on 17.07.24.
+//
+
+#pragma once
+
+#define BARCODE_LENGTH @BARCODE_LENGTH@
+
+#define DEFAULT_CANDIDATE_COUNT 100
+#define DEFAULT_PSEUDO_DISTANCE_WINDOW_SIZE 5
+#define DEFAULT_REJECTION_THRESHOLD 8

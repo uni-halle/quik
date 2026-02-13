@@ -9,40 +9,29 @@
 #include <iostream>
 #include <cassert>
 #include <cstdint>
+#include <sstream>
+#include "base.h"
 
-#include "constants.h"
 
-typedef uint8_t base;
-
-struct sequence {
-
-    static constexpr int LENGTH = SEQUENCE_LENGTH;
-    static constexpr int ARRAY_LENGTH =
-            (LENGTH + 4 - 1) / 4; // ARRAY_LENGTH = ceil(LENGTH/4) as 4 bases fit into one uint8_t
-    base bases[ARRAY_LENGTH];
+class sequence {
 
 public:
+    __host__ __device__ virtual ~sequence() = default;
+    static constexpr char __nucleotides[] = {'A', 'C', 'G', 'T'};
 
-    /**
-     * Dummy constructor.
-     */
-    __host__ __device__ sequence();
+    static void string_to_bytes(const std::string& str, uint8_t* bases) {
 
-    __host__ sequence(const std::string &seq) {
-
-        assert(seq.size() == LENGTH);
+        int array_length = (str.length() + 4 - 1) / 4;
 
         // convert four consecutive ASCII characters into a single byte
-        for (unsigned i = 0; i < ARRAY_LENGTH; i++) {
+        for (unsigned i = 0; i < array_length; i++) {
 
             uint8_t byte = 0;
 
             // read the four next characters of the string
             unsigned j = 4 * i;
-            for (; j < i * 4 + 4 && j < seq.size(); j++) {
-                char c = seq[j];
-                uint8_t sign = char_to_base(c);
-                byte = (byte << 2) + sign;
+            for (; j < i * 4 + 4 && j < str.size(); j++) {
+                byte = (byte << 2) + base(str[j]).to_uint8();
             }
             byte = byte << 2 * (4 * i + 4 - j);
             bases[i] = byte;
@@ -51,56 +40,46 @@ public:
 
     /**
      * Return the binary representation of the i-th nucleotide.
-     * @param i
+     * @param sequence_data Binary representation of sequence data
+     * @param index Position between 0 and length()-1
      * @return
      */
-    __host__ __device__ base operator[](unsigned i) const {
-
-        assert(i < LENGTH);
-        unsigned k = i >> 2;        // k = i / 4;
-        unsigned r = i - (k << 2);  // r = i % 4 such that i = 4k+r
-        assert(i == 4*k+r);
-        assert(k < ARRAY_LENGTH);
-        uint8_t c = bases[k];
-        return (c >> 2 * (3 - r)) & 3;
+    __host__ __device__ static base extract_i_th_nucleotide(const uint8_t* sequence_data, unsigned index) {
+        unsigned k = index >> 2; // k = i / 4;
+        unsigned r = index - (k << 2); // r = i % 4 such that i = 4k+r
+        assert(index == 4*k+r);
+        uint8_t c = sequence_data[k];
+        uint8_t d = (c >> 2 * (3 - r)) & 3;
+        return base::from_uint8(d);
     }
 
-    __host__ __device__ static base char_to_base(char c) {
+    /**
+     * Return the number of bases in this sequence.
+     */
+    __host__ __device__ virtual unsigned length() const = 0;
 
-        unsigned base[256];
-        for (unsigned j = 0; j < 256; j++)
-            base[j] = UINT8_MAX; // error value
+    /**
+     * Extract the base at a certain position.
+     **/
+    __host__ __device__ virtual base operator[](unsigned index) const = 0;
 
-        base['A'] = 0; // 00
-        base['a'] = 0;
-        base['C'] = 1; // 01
-        base['c'] = 1;
-        base['G'] = 2; // 10
-        base['g'] = 2;
-        base['T'] = 3; // 11
-        base['t'] = 3;
-
-        return base[c];
+    /**
+     * Convert to an ASCII string
+     */
+    __host__ std::string to_string() const {
+        std::stringstream ss;
+        for (unsigned i = 0; i < length(); i++)
+            ss << operator[](i).to_char();
+        //str[LENGTH] = '\0';
+        return ss.str();
     }
 
-    __host__ __device__ static char base_to_char(uint8_t base) {
-        assert(base < 4);
-        constexpr char table[] = {'A', 'C', 'G', 'T'};
-        return table[base];
-    }
-
-    __host__ __device__ void to_string(char* str) const {
-        for(unsigned i = 0; i < LENGTH; i++)
-            str[i] = base_to_char(operator[](i));
-        str[LENGTH] = '\0';
+    __host__ __device__ unsigned get_raw_data_size() const {
+        // array_length = ceil(length/4) as 4 bases fit into one uint8_t
+        unsigned array_length = (length() + 4 - 1) / 4;
+        //std::cout << "get_array_length() = " << array_length << std::endl;
+        return array_length;
     }
 };
-
-inline std::ostream &operator<<(std::ostream &os, const sequence &b) {
-    for (unsigned i = 0; i < sequence::LENGTH; i++) {
-        os << sequence::base_to_char(b[i]);
-    }
-    return os;
-}
 
 #endif //BARCODE_CALLING_SEQUENCE_H
