@@ -59,7 +59,7 @@ The `quik` command line tool is used in the following way:
 | `-d, --distance <STRING>`        | Distance measure specification.<br><br>Possible values:<br>- `levenshtein`<br>- `sequence-levenshtein`<br><br>Default: `sequence-levenshtein`                                                                                                                                                                                                                                                                                      |
 | `-t, --threshold_distance <INT>` | Maximum allowed distance between read and barcode.<br><br>A read is only assigned if its distance is not larger than this threshold.<br><br>Default: `2,147,483,647` (`INT32_MAX`)                                                                                                                                                                                                                                                 |
 | `-c, --costs <FILE>`             | Cost file used for the distance measure.<br><br>File contains lines of the form:<br>`<x> <y> <c_xy>`<br><br>Where:<br>- `<x>` and `<y>` are characters from `{A,C,G,T,-}`<br>- `<c_xy>` is a integral alignment cost<br><br>Missing base pairs imply zero alignment cost.<br><br>Default: `1` for each substitution, deletion, or mismatch. Zero for matches.                                                                      |
-| `-m, --method <STRING>`          | Barcode matching method.<br><br>Possible values:<br>- `no-filter` — best accuracy, extremely slow<br>- `4-mer-filter` — high accuracy, much faster<br>- `5-mer-filter` — decent accuracy, even faster<br>- `6-mer-filter` — low accuracy, much faster<br>- `7-mer-filter` — lowest accuracy, fastest method<br>- `7-4-mer-filter` — runs `7-mer-filter` first, then `4-mer-filter` to assign the remaining reads.<br><br>Default: `4-mer-filter` |
+| `-m, --method <STRING>`          | Barcode matching method.<br><br>Possible values:<br>- `4-mer-filter` — high accuracy, much faster<br>- `5-mer-filter` — decent accuracy, even faster<br>- `6-mer-filter` — low accuracy, much faster<br>- `7-mer-filter` — lowest accuracy, fastest method<br>- `7-4-mer-filter` — runs `7-mer-filter` first, then `4-mer-filter` to assign the remaining reads.<br><br>Default: `4-mer-filter` |
 | `-g, --gpu`                      | Run the calculations on the GPU. This is usually faster than the standard mode.                                                                                                                                                                                                                                                                                                                                                    |
 | `-v, --verbose`                  | Print extra information to the standard error stream.                                                                                                                                                                                                                                                                                                                                                                              |
 | `-h, --help`                     | Show this help message and exit.                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -79,14 +79,11 @@ Unassigned reads do not occur in the output.
 ### Example Usage
 
 ```bash
-# Basic usage
-quik -b barcodes.fq -r reads.fq
+  # Basic usage on GPU
+  quik --barcodes barcodes.bc --reads reads.fq --gpu
 
-# Use 4-mer filtering and sequence-based Levenshtein distance
-quik -b bc.fq -r reads.fq -m 4-mer-filter -d sequence-levenshtein
-
-# Custom cost matrix on GPU
-quik --barcodes bc.fq --reads reads.fq --costs costs.txt --gpu
+  # Use 5-mer filtering and classical Levenshtein distance
+  quik -b barcodes.bc -r reads.fq -m 5-mer-filter -d levenshtein
 ```
 
 ## Data
