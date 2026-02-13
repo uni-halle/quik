@@ -10,7 +10,7 @@ faster than that, and thus allows barcode calling for one million barcodes and o
 
 ## Installation
 
-Our software has been developed for Linux. The following steps are required for installation on a Ubuntu 24.04 system:
+Our software has been developed for Linux. The following steps are required to install quik on a Ubuntu 24.04 system:
 
 1. Install software packages:
 
@@ -43,41 +43,76 @@ All binaries explain their usage when executed without arguments.
 
 The `quik` command line tool is used in the following way:
 
-    quik --barcodes <FILE> --reads <FILE> [OPTIONS]
-
-### Required Arguments 
-
-| Argument | Description                                                                                                                                                                                                                         |
-|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `-b, --barcodes <FILE>` | Barcode file in our custom **BC format** (which is a subset of the FASTQ format).<br><br>Such files contain two line-separated fields per barcode:<br>- Field 1 begins with `@` and is followed by a barcode identifier (similar to FASTQ).<br>- Field 2 contains the raw sequence letters. |
-| `-r, --reads <FILE>` | Read file in **FASTQ format**.                                                                                                                                                                                                      |
-
-### Optional Arguments
-
-| Argument                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                        |
-|----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `-d, --distance <STRING>`        | Distance measure specification.<br><br>Possible values:<br>- `levenshtein`<br>- `sequence-levenshtein`<br><br>Default: `sequence-levenshtein`                                                                                                                                                                                                                                                                                      |
-| `-t, --threshold_distance <INT>` | Maximum allowed distance between read and barcode.<br><br>A read is only assigned if its distance is not larger than this threshold.<br><br>Default: `2,147,483,647` (`INT32_MAX`)                                                                                                                                                                                                                                                 |
-| `-m, --method <STRING>`          | Barcode matching method.<br><br>Possible values:<br>- `4-mer-filter` — high accuracy, much faster<br>- `5-mer-filter` — decent accuracy, even faster<br>- `6-mer-filter` — low accuracy, much faster<br>- `7-mer-filter` — lowest accuracy, fastest method<br>- `7-4-mer-filter` — runs `7-mer-filter` first, then `4-mer-filter` to assign the remaining reads.<br><br>Default: `4-mer-filter` |
-| `-g, --gpu`                      | Run the calculations on the GPU. This is usually faster than the standard mode.                                                                                                                                                                                                                                                                                                                                                    |
-| `-v, --verbose`                  | Print extra information to the standard error stream.                                                                                                                                                                                                                                                                                                                                                                              |
-| `-h, --help`                     | Show this help message and exit.                                                                                                                                                                                                                                                                                                                                                                                                   |
-
-### Output Format
-
-Quik writes one line per assigned read to the standard output. Each line has three tab-separated fields:
-
-| Field      | Meaning                                         |
-|------------|-------------------------------------------------|
-| `read`     | Sequence identifier of each read (at most once) |
-| `barcode`  | Sequence identifier of the associated barcode   |
-| `distance` | Distance between read and barcode               |
-
-Unassigned reads do not occur in the output.
-
-### Example Usage
-
 ```bash
+  quik --barcodes <FILE> --reads <FILE> [OPTIONS]
+
+Required arguments:
+  -b, --barcodes <FILE>     Barcode file in our custom BC format.
+
+                            Such files have two line-separated fields per barcode.
+                              - Field 1 begins with a '@' character and is followed
+                                by a barcode identifier (similar to FASTQ).
+                              - Field 2 is the raw sequence letters.
+
+  -r, --reads <FILE>        Read file in FASTQ format.
+
+Optional arguments:
+  -d, --distance <STRING>   Distance measure specification
+
+                            Possible values:
+
+                              levenshtein
+                              sequence-levenshtein
+
+                            (default: sequence-levenshtein)
+
+  -t, --threshold-distance  Maximum allowed distance between read and barcode.
+                            A read is only assigned to a barcode if its
+                            distance is smaller or equal than this integer.
+
+                            (default: 2.147.483.647 (INT32_MAX))
+
+  -m, --method <STRING>     Barcode matching method
+                            Possible values:
+
+                              4-mer-filter
+                                  High accuracy, much faster than no-filter
+
+                              5-mer-filter
+                                  Decent accuracy, even faster than 4-mer-filter
+
+                              6-mer-filter
+                                  Low accuracy, much faster than 5-mer-filter
+
+                              7-mer-filter
+                                  Lowest accuracy, fastest method
+
+                              7-4-mer-filter
+                                  First runs the fast 7-mer-filter to assign the
+                                  majority of the reads, then run the 4-mer-filter
+                                  to assign the remaining reads.
+
+                            (default: 4-mer-filter)
+
+  -g, --gpu                 Apply all calculations on the first GPU visible to quik.
+                            This is usually much faster than non-gpu mode.
+
+  -h, --help                Show this help message and exit
+  -v, --verbose             Print extra information to the standard error stream
+
+Output:
+  quik writes one line per assigned read to the standard output.
+  Fields are tab-separated and have the following meaning:
+
+    read           Sequence identifier of each read (exactly once)
+
+    barcode        Sequence identifier of associated barcode
+
+    distance       Distance between read and barcode.
+
+  Unassigned reads do not occur in the output.
+
+Examples:
   # Basic usage on GPU
   quik --barcodes barcodes.bc --reads reads.fq --gpu
 
@@ -87,7 +122,8 @@ Unassigned reads do not occur in the output.
 
 ## Data
 
-The data directory contains sample files that can be used for testing and which we used to produce some of the results in our journal article.
+The data directory contains sample files that can be used for testing and which we used to produce some of the results in our journal article. 
+The reads and ground truth assignments in this directory have been created from the auxiliary tool `simulate_errors` using `prob=0.2`.
 
 
 
