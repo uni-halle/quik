@@ -1,11 +1,65 @@
 cmake_minimum_required(VERSION 3.22)
 
-# define the GPU architecture if none is predefined
+# --- CUDA Architectures Setup -----------------------------------------
+
+# User override:
+#   cmake -DCMAKE_CUDA_ARCHITECTURES=86 ..
+#
+# Default behavior:
+#   - If a GPU is present: build with native architecture
+#   - If no GPU is present: fall back to a portable architecture list
+
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES 80)
+
+    message(STATUS "No CUDA architecture specified by user.")
+
+    # Try native first (works only if a CUDA GPU is visible at configure time)
+    set(_TRY_NATIVE TRUE)
+
+    # We detect whether nvidia-smi works (simple heuristic)
+    find_program(NVIDIA_SMI nvidia-smi)
+
+    if(NVIDIA_SMI)
+        execute_process(
+                COMMAND ${NVIDIA_SMI} --query-gpu=compute_cap --format=csv,noheader
+                RESULT_VARIABLE _SMI_RESULT
+                OUTPUT_VARIABLE _SMI_OUTPUT
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        if(_SMI_RESULT EQUAL 0 AND NOT _SMI_OUTPUT STREQUAL "")
+            message(STATUS "CUDA GPU detected (compute capability: ${_SMI_OUTPUT})")
+            message(STATUS "Using CMAKE_CUDA_ARCHITECTURES=native")
+            set(CMAKE_CUDA_ARCHITECTURES native)
+            set(_TRY_NATIVE FALSE)
+        endif()
+    endif()
+
+    # Fallback if no GPU was detected
+    if(_TRY_NATIVE)
+        message(WARNING
+                "No CUDA GPU detected at configure time.\n"
+                "Falling back to a portable architecture set (sm_61, sm_75, sm_86).\n"
+                "You can override manually with:\n"
+                "  cmake -DCMAKE_CUDA_ARCHITECTURES=XX .."
+        )
+
+        # Portable default set
+        set(CMAKE_CUDA_ARCHITECTURES "61;75;86")
+    endif()
+
+else()
+    message(STATUS
+            "User provided CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}"
+    )
 endif()
 
-project(barcode_calling LANGUAGES CXX CUDA)
+message(STATUS "Final CUDA archs: ${CMAKE_CUDA_ARCHITECTURES}")
+
+# ----------------------------------------------------------------------
+
+project(quik LANGUAGES CXX CUDA)
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
@@ -21,7 +75,6 @@ configure_file(
         ${CMAKE_SOURCE_DIR}/src/constants.h.in
         ${CMAKE_BINARY_DIR}/generated/constants.h
 )
-
 
 
 
@@ -96,4 +149,15 @@ target_include_directories(simulate_errors PRIVATE
         ${CMAKE_BINARY_DIR}/generated
 )
 
-target_compile_options(quik PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+# relax warning #20013-D
+target_compile_options(quik PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+)
+
+target_compile_options(benchmark_barcode_calling PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+)
+
+target_compile_options(simulate_errors PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+)
