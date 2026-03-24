@@ -26,14 +26,15 @@ Our software has been developed for Linux. The following steps are required to i
 
    - Quik assumes a barcode set in which all barcodes have the same length. You need to specify this length using the option `-DBARCODE_LENGTH`. The following example uses barcodes of length 34.
 
-   - If you want to run quik on a specific GPU that is **not** available in your build system, you can specify the Compute Capability of your target GPU using the option `-DCMAKE_CUDA_ARCHITECTURES`. In this example, we build the code for the NVIDIA A100 GPU, which has Compute Capability 8.0.
+   - If you want to run quik on a specific GPU that is **not** available at your build system, you can specify the Compute Capability of your target GPU using the option `-DCMAKE_CUDA_ARCHITECTURES`. In this example, we build the code for the NVIDIA A100 GPU, which has Compute Capability 8.0. 
 
-
-      cd quik
-      mkdir build
-      cd build
-      cmake -DBARCODE_LENGTH=34 -DCMAKE_CUDA_ARCHITECTURES=80 ..
-      make
+   ```bash
+   cd quik
+   mkdir build
+   cd build
+   cmake -DBARCODE_LENGTH=34 -DCMAKE_CUDA_ARCHITECTURES=80 ..
+   make
+   ```
 
 The `build` directory should now contain three binaries:
 
