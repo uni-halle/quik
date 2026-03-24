@@ -17,4 +17,5 @@ abort(); \
 } \
 } while (0)
 
+
 #endif //CUDA_HELPER_CUH

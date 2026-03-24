@@ -2,84 +2,68 @@
 // Created by agkya on 09.07.25.
 //
 
-#ifndef EXTENDED_BASE_H
-#define EXTENDED_BASE_H
+#pragma once
 
 #include <cassert>
 #include <cstdint>
 
-class extended_base {
+#include "dna_tables.h"
 
-    /*****************************************************
-     * A = 000 = 0
-     * C = 001 = 1
-     * G = 010 = 2
-     * T = 011 = 3
-     * _ = 100 = 4
-     *****************************************************/
+namespace barcode_calling {
 
-    uint8_t value;
+    class extended_base {
 
-    // dummy constructor
-    __host__ __device__ extended_base() : value(UINT8_MAX) {}
+    protected:
+        /*****************************************************
+         * A = 000 = 0
+         * C = 001 = 1
+         * T = 010 = 2
+         * G = 011 = 3
+         * - = 100 = 4
+         *****************************************************/
 
-public:
+        uint8_t value = UINT8_MAX;
 
-    /*extended_base(uint8_t value) :
-        value(value) {
-        assert(value <= 4);
-    }*/
+        __host__ __device__
+        explicit extended_base(uint8_t value) : value(value) {};
 
-    /**
-     * Construct a base from the character 'A', 'C', 'G', 'T', '-'.
-     * @param c
-     */
-    __host__ __device__ extended_base(char c) {
+    public:
+        /**
+         * Construct a base from the character 'A', 'C', 'G', 'T', '-'.
+         * @param c
+         */
+        __host__ __device__ __forceinline__
+        explicit extended_base(const char c) : value(
+#ifdef __CUDA_ARCH__   // Device Code
+            dna_tables::char_to_uint8_dev[c]
+#else
+            dna_tables::char_to_uint8_host[c]
+#endif
+        ) {}
 
-        switch (c) {
-        case 'A':
-        case 'a':
-            value = 0;
-            return;
-        case 'C':
-        case 'c':
-            value = 1;
-            return;
-        case 'G':
-        case 'g':
-            value = 2;
-            return;
-        case 'T':
-        case 't':
-            value = 3;
-            return;
-        case '_':
-        case '-':
-            value = 4;
-            return;
-        default:
-            value = UINT8_MAX;
+        /**
+         * Convert the base to 'A', 'C', 'G', 'T', or '-'.
+         */
+        __host__ __device__ char to_char() const {
+            assert(value <= 4);
+#ifdef __CUDA_ARCH__   // Device Code
+            return dna_tables::uint8_to_char_dev[value];
+#else
+            return dna_tables::uint8_to_char_host[value];
+#endif
         }
-    }
 
-    /**
-     * Convert the base to 'A', 'C', 'G', 'T', or '-'.
-     */
-    __host__ __device__ char to_char() const {
-        assert(value <= 4);
-        constexpr char table[] = {'A', 'C', 'G', 'T', '-'};
-        return table[value];
-    }
+        /**
+         * Convert the base to uint8_t so we can do arithmetics with it.
+         */
+        __host__ __device__ uint8_t to_uint8() const {
+            return value;
+        }
 
-    /**
-     * Convert the base to uint8_t so we can do arithmetics with it.
-     */
-    __host__ __device__ uint8_t to_uint8() const {
-        return value;
-    }
+        /*__host__ __device__
+        bool operator==(const extended_base& b) const {
+            return this->to_char() == b.to_char();
+        }*/
 
-};
-
-
-
-#endif //EXTENDED_BASE_H
+    };
+}

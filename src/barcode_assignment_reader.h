@@ -19,7 +19,7 @@ namespace barcode_calling {
 
         barcode_assignment_reader(const std::string& filename,
                                   const barcode_set& barcodes,
-                                  const read_set& reads)
+                                  const read_file& reads)
             : barcode_assignment(reads.size()) {
 
             std::ifstream infile(filename);
@@ -39,20 +39,20 @@ namespace barcode_calling {
                 if (parts.size() != 3)
                     throw std::runtime_error("Error! corrupted assignment file");
 
-                std::string read_name = parts[0];
-                std::string barcode_name = parts[1];
+                const std::string& read_name = parts[0];
+                const std::string& barcode_name = parts[1];
                 int dist = std::stoi(parts[2]);
 
                 // determine the index of read and barcode
-                unsigned read_id = reads.get_index_of(parts[0]);
-                unsigned barcode_id = barcodes.get_index_of(parts[1]);
+                unsigned read_id = reads.get_index_of(read_name);
+                unsigned barcode_id = barcodes.get_index_of(barcode_name);
                 assign_read_to_barcode(read_id, barcode_id, dist);
             }
         }
 
     private:
 
-        std::vector<std::string> split_semicolon_or_tab(const std::string& s) {
+        static std::vector<std::string> split_semicolon_or_tab(const std::string& s) {
             std::vector<std::string> result;
 
             std::size_t start = 0;

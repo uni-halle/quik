@@ -4,7 +4,11 @@
 
 #ifndef EXTENDED_BARCODE_ASSIGNMENT_H
 #define EXTENDED_BARCODE_ASSIGNMENT_H
+
 #include "barcode_assignment.h"
+#include <cuda.h>
+
+#include "cuda_helper.cuh"
 
 namespace barcode_calling {
 
@@ -18,10 +22,23 @@ namespace barcode_calling {
          *   1) A barcode b1 to which r has minimum distance.
          *   2) A barcode b2 to which r has second best distance.
          */
-        std::vector<unsigned> barcode_id_2nd;
-        std::vector<int> distance_to_2nd_barcode;
+        unsigned* closest_barcodes_2nd = nullptr;
+        int32_t* closest_distances_2nd = nullptr;
 
     public:
+
+        extended_barcode_assignment(const unsigned read_count)
+            : barcode_assignment(read_count) {
+            CUDA_CHECK(cudaMallocHost(&closest_barcodes_2nd, read_count * sizeof(unsigned)));
+            CUDA_CHECK(cudaMallocHost(&closest_distances_2nd, read_count * sizeof(int32_t)));
+            std::fill_n(closest_barcodes_2nd, read_count, UINT_MAX);
+            std::fill_n(closest_distances_2nd, read_count, INT32_MAX);
+        }
+
+        ~extended_barcode_assignment() override {
+            CUDA_CHECK(cudaFreeHost(closest_barcodes_2nd));
+            CUDA_CHECK(cudaFreeHost(closest_distances_2nd));
+        }
 
         /**
          * Define the best-fitting barcode to some read.
@@ -40,45 +57,40 @@ namespace barcode_calling {
          * @param distance
          */
         void assign_as_2nd_barcode(unsigned read_id, unsigned barcode_id, int distance) {
-            barcode_id_2nd[read_id] = barcode_id;
-            distance_to_2nd_barcode[read_id] = distance;;
+            closest_barcodes_2nd[read_id] = barcode_id;
+            closest_distances_2nd[read_id] = distance;;
         }
 
-    public:
-
-        extended_barcode_assignment(unsigned read_count) :
-            barcode_assignment(read_count),
-            barcode_id_2nd(read_count, UINT_MAX),
-            distance_to_2nd_barcode(read_count, INT_MAX) {}
 
         /**
         * Return an barcode index minimum distance to the read.
-        * @param read_id
         * @return
         */
-        unsigned get_1st_barcode(unsigned read_id) const {
-            return get_assigned_barcode(read_id);
+        [[nodiscard]]
+        const unsigned* get_1st_barcodes() const {
+            return get_closest_barcodes();
         }
 
         /**
          * Return an barcode index second-to-minimum distance to the read.
-         * @param read_id
          * @return
          */
-        unsigned get_2nd_barcode(unsigned read_id) const {
-            return barcode_id_2nd[read_id];
+        [[nodiscard]]
+        const unsigned* get_2nd_barcodes() const {
+            return closest_barcodes_2nd;
         }
 
-        int get_distance_to_1st_barcode(unsigned read_id) const {
-            return distance[read_id];
+        [[nodiscard]]
+        const int32_t* get_1st_distances() const {
+            return closest_distances;
         }
 
-        int get_distance_to_2nd_barcode(unsigned read_id) const {
-            return distance_to_2nd_barcode[read_id];
+        [[nodiscard]]
+        const int32_t* get_2nd_distances() const {
+            return closest_distances_2nd;
         }
 
     };
-
 }
 
 #endif //EXTENDED_BARCODE_ASSIGNMENT_H

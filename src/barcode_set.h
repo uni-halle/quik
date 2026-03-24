@@ -14,6 +14,7 @@ namespace barcode_calling {
     class barcode_set : public std::vector<barcode> {
 
     protected:
+
         // each barcode has a unique identifier
         std::vector<std::string> names;
 

@@ -4,37 +4,44 @@
 
 #ifndef BARCODE_CALLING_ALGORITHM_H
 #define BARCODE_CALLING_ALGORITHM_H
+
 #include "../barcode_set.h"
 #include "../extended_barcode_assignment.h"
 #include "../read_set.h"
-#include "../distance/distance_measure.h"
-#include "../distance/sequence_levenshtein_v4.cuh"
 
 namespace barcode_calling {
 
-    class barcode_calling_algorithm {
+    class barcode_calling_algorithm : public extended_barcode_assignment {
 
     protected:
-        const std::string name;
-        const distance_measure& dist;
+        const barcode_set& barcodes;
+        const read_set& reads;
+        const int32_t rejection_threshold = INT32_MAX;
 
     public:
+        /**
+         * Initialize the algorithm with the necessary parameters.
+         *
+         * The actual computation must be started by using the run method.
+         *
+         * @param barcodes
+         * @param reads
+         * @param rejection_threshold
+         */
+        barcode_calling_algorithm(const barcode_set& barcodes,
+                                  const read_set& reads,
+                                  const int32_t rejection_threshold = INT32_MAX)
+            : extended_barcode_assignment(reads.size()),
+              barcodes(barcodes), reads(reads), rejection_threshold(rejection_threshold) {};
 
-        barcode_calling_algorithm(const std::string& name,
-                                  const distance_measure& dist = sequence_levenshtein_v4())
-            : name(name), dist(dist) {};
-
-        virtual ~barcode_calling_algorithm() = default;
-
-        virtual extended_barcode_assignment run(
-            const barcode_set& barcodes,
-            const read_set& reads) const = 0;
-
-        const std::string& get_name() const {
-            return name;
-        }
+        /**
+         * Run the algorithm.
+         * @return
+         */
+        virtual barcode_calling_algorithm& run() {
+            return *this;
+        };
     };
-
 }
 
 #endif //BARCODE_CALLING_ALGORITHM_H

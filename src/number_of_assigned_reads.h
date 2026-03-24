@@ -11,12 +11,12 @@
 namespace barcode_calling {
 
     inline unsigned number_of_assigned_reads(
-        const read_set& reads,
+        const size_t read_count,
         const barcode_assignment& ass,
         const int rejection_threshold) {
         unsigned num = 0;
-        for (unsigned read_id = 0; read_id < reads.size(); ++read_id) {
-            if (ass.is_assigned_to_some_barcode(read_id) && ass.get_distance(read_id) <= rejection_threshold)
+        for (unsigned read_id = 0; read_id < read_count; ++read_id) {
+            if (ass.is_assigned_to_some_barcode(read_id) && ass.get_closest_distances()[read_id] <= rejection_threshold)
                 num++;
         }
         return num;

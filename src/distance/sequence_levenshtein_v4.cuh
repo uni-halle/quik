@@ -8,6 +8,7 @@
 #include "../barcode.h"
 #include "../read.h"
 #include "sequence_levenshtein_v3.cuh"
+#include "../unit_costs.h"
 
 namespace barcode_calling {
 
@@ -16,13 +17,22 @@ namespace barcode_calling {
     * Calculate min { SL-dist(b,r), upper_bound } which is usually faster than calculating SL-dist(b,r).
     * @return
     */
-    class sequence_levenshtein_v4 : public distance_measure {
+    template<typename alignment_costs = unit_costs>
+    class sequence_levenshtein_v4 {
 
     protected:
+
         uint8_t upper_bound = UINT8_MAX;
 
     public:
-        __host__ __device__ static uint8_t evaluate(const barcode& b, const read& r, uint8_t upper_bound = UINT8_MAX) {
+
+        static std::string name() { return "sequence_levenshtein_v4"; }
+
+        __host__ __device__
+        void set_upper_bound(uint8_t upper_bound) { this->upper_bound = upper_bound; }
+
+        __host__ __device__ int32_t
+        operator()(const barcode& b, const read& r) const {
 
             /************************************************************************************
              * We construct a matrix D with r.length() + 1 rows and BARCODE_LENGTH + 1 columns.
@@ -59,7 +69,7 @@ namespace barcode_calling {
 
             // fall back to the standard DP-algorithm
             if (upper_bound >= b.length() || upper_bound >= r.length())
-                return sequence_levenshtein_v3::evaluate(b, r);
+                return sequence_levenshtein_v3<alignment_costs>{}(b, r);
 
             uint8_t min_dist = upper_bound; // will be returned
             uint8_t D_i[BARCODE_LENGTH + 1]; // i-th row of the distance matrix
@@ -95,7 +105,7 @@ namespace barcode_calling {
                 // for each cell in between D[i][j_start] and D[i][i+upper_bound+1]
                 for (int j = j_start + 1; j <= BARCODE_LENGTH && j <= i + upper_bound; j++) {
 
-                    uint8_t edit_cost = b[i - 1] == r[j - 1] ? 0 : 1;
+                    uint8_t edit_cost = b[i - 1].to_uint8() == r[j - 1].to_uint8() ? 0 : 1;
                     uint8_t y = D_i[j]; // y == D[i-1][j]
 
                     /*****************************************************************************
@@ -126,16 +136,6 @@ namespace barcode_calling {
                 min_dist = min(min_dist, D_i[j]);
 
             return min_dist;
-        }
-
-        sequence_levenshtein_v4() : distance_measure("sequence_levenshtein_v4") {}
-
-        __host__ __device__
-        void set_upper_bound(uint8_t upper_bound) { this->upper_bound = upper_bound; }
-
-        __host__ __device__ int32_t
-        operator()(const barcode& b, const read& r) const override {
-            return evaluate(b, r, upper_bound);
         }
 
     };

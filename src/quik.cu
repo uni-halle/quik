@@ -5,22 +5,20 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
-#include "calling_algorithms/k_mer_filtered_calling_host_v2.h"
+#include "calling_algorithms/k_mer_filter_host_v2.h"
 #include <omp.h>
 #include <thread>
 #include <unordered_map>
-
-#include "barcode_assignment_writer.h"
+#include "explicit_costs.h"
 #include "barcode_set_bc_reader.h"
-#include "read_set_fastq_reader.h"
-#include "distance/levenshtein_v3.cuh"
+#include "read_file_fastq_reader.h"
 #include "distance/weighted_levenshtein_v1.cuh"
-#include "distance/sequence_levenshtein_v3.cuh"
 #include "extended_barcode_assignment_writer.h"
-#include "number_of_assigned_reads.h"
-#include "calling_algorithms/k_mer_filtered_calling_gpu_v5.cuh"
-#include "calling_algorithms/two_step_k_mer_filtered_calling_gpu_v1.cuh"
-#include "calling_algorithms/two_step_k_mer_filtered_calling_host_v1.h"
+#include "constants.h"
+#include "calling_algorithms/k_mer_filter_host_default.cuh"
+#include "calling_algorithms/k_mer_filter_multi_gpu_default.cuh"
+#include "calling_algorithms/two_step_k_mer_filter_host_default.cuh"
+#include "calling_algorithms/two_step_k_mer_filter_multi_gpu_default.cuh"
 #include "distance/weighted_sequence_levenshtein_v1.cuh"
 
 using namespace barcode_calling;
@@ -57,22 +55,22 @@ Optional arguments:
                             A read is only assigned to a barcode if its
                             distance is smaller or equal than this integer.
 
-                            (default: 2.147.483.647 (INT32_MAX))
+                            (default: 8)
 
   -m, --method <STRING>     Barcode matching method
                             Possible values:
 
                               4-mer-filter
-                                  Highest accuracy, slowest filter method
+                                  High accuracy, decent running time
 
                               5-mer-filter
-                                  Decent accuracy, faster than 4-mer-filter
+                                  Decent accuracy, faster than the 4-mer filter
 
                               6-mer-filter
-                                  Low accuracy, faster than 5-mer-filter
+                                  Low accuracy, faster than the 5-mer filter
 
                               7-mer-filter
-                                  Lowest accuracy, fastest method
+                                  Lowest accuracy, faster than the 6-mer filter
 
                               7-4-mer-filter
                                   First runs the fast 7-mer-filter to assign the
@@ -81,21 +79,25 @@ Optional arguments:
 
                             (default: 4-mer-filter)
 
-  -g, --gpu                 Apply all calculations on the first GPU visible to quik.
+  -g, --gpu                 Apply the calculations on all CUDA capable GPUs that
+                            are available at this system.
                             This is usually much faster than non-gpu mode.
 
   -h, --help                Show this help message and exit
   -v, --verbose             Print extra information to the standard error stream
 
 Output:
+
   quik writes one line per assigned read to the standard output.
   Fields are tab-separated and have the following meaning:
 
     read           Sequence identifier of each read (at most once)
-    barcode        Sequence identifier of closest barcode
-    distance       Distance between read and barcode
+    barcode1       Sequence identifier of closest barcode
+    barcode2       Sequence identifier of second to closest barcode
+    distance1      Distance between read and barcode1
+    distance2      Distance between read and barcode2
 
-  Reads with distance > threshold-distance do not occur in the output.
+  Reads with distance1 > threshold-distance do not occur in the output.
 
 Examples:
   # Basic usage on GPU
@@ -105,6 +107,19 @@ Examples:
   quik -b barcodes.bc -r reads.fq -m 5-mer-filter -d levenshtein
 )";
 }
+
+/*************************************************************
+ * Command line parameters
+ ************************************************************/
+
+std::string barcode_file_str;
+std::string read_file_str;
+std::string cost_file_str;
+std::string threshold_str;
+std::string distance_str;
+std::string method_str;
+bool verbose, gpu;
+
 
 std::unordered_map<std::string, std::string>
 parse_arguments(int argc, char* argv[]) {
@@ -166,6 +181,148 @@ std::string get_arg(const std::unordered_map<std::string, std::string>& args,
     return default_val;
 }
 
+template <typename calling_algorithm, typename distance_function>
+int run2(const barcode_set& barcodes,
+         read_file_fastq_reader& read_file_reader,
+         const int32_t rejection_threshold,
+         const distance_function dist) {
+
+    // we count the total number of assigned reads
+    size_t assigned_reads = 0;
+
+    // start measuring running time
+    auto start = std::chrono::high_resolution_clock::now();
+
+    /*****************************************************************************************
+     * While there are still reads in the file, load and process the next chunk of reads
+     *****************************************************************************************/
+
+    for (read_file read_f = read_file_reader.next(MAX_READ_COUNT); !read_f.empty();
+        read_f = read_file_reader.next(MAX_READ_COUNT)) {
+
+        //std::cout << "process chunk of " << read_f.size() << " reads" << std::endl;
+
+        // convert the read file to the read set
+        read_set reads(read_f);
+
+        // create the algorithm object
+        calling_algorithm alg(barcodes, reads, rejection_threshold, dist);
+
+        // run the algorithm to compute a barcode assignment
+        const extended_barcode_assignment& ass = alg.run();
+
+        // output to the standard output stream
+        extended_barcode_assignment_writer(barcodes, read_f, ass, rejection_threshold).write(std::cout);
+
+        // update the assignment count
+        for (size_t read_id= 0; read_id < reads.size(); read_id++) {
+            if (ass.get_1st_distances()[read_id] <= rejection_threshold)
+                assigned_reads++;
+        }
+    }
+
+    // stop measuring running time
+    auto end = std::chrono::high_resolution_clock::now();
+    double running_time_sec = std::chrono::duration<double>(end - start).count();
+
+    if (verbose) {
+
+        int device_count = 0;
+        CUDA_CHECK(cudaGetDeviceCount(&device_count));
+
+        size_t read_count = read_file_reader.get_processed_read_count();
+
+        // print debug information
+        std::cerr << "barcode_file             = " << barcode_file_str << std::endl;
+        std::cerr << "read_file                = " << read_file_str << std::endl;
+        std::cerr << "barcode_count            = " << barcodes.size() << std::endl;
+        std::cerr << "read_count               = " << read_count << std::endl;
+        std::cerr << "BARCODE_LENGTH           = " << BARCODE_LENGTH << std::endl;
+        std::cerr << "costs                    = " << dist.get_costs().to_string() << std::endl;
+        std::cerr << "method                   = " << calling_algorithm::name() << std::endl;
+        std::cerr << "distance                 = " << distance_function::name() << std::endl;
+        std::cerr << "rejection_threshold      = " << rejection_threshold << std::endl;
+        std::cerr << "OMP_NUM_THREADS          = " << omp_get_max_threads() << std::endl;
+        std::cerr << "GPU count                = " << device_count << std::endl;
+
+        double percent_assigned = 100.0 * assigned_reads / read_count;
+        std::cerr << "total running time (sec) = " << running_time_sec << std::endl;
+        std::cerr << "number of assigned reads = " << assigned_reads << " ("
+            << percent_assigned << " %)" << std::endl;
+    }
+
+    return 0;
+
+}
+
+
+template <typename distance_function>
+int run1(const barcode_set& barcodes,
+         read_file_fastq_reader& read_file_reader,
+         const int32_t rejection_threshold,
+         const distance_function dist) {
+
+    /****************************************************************************
+    * Select the calling algorithm.
+    ****************************************************************************/
+
+    if (gpu) {
+
+        /******************************************************************
+         * Read basic gpu data
+         *****************************************************************/
+
+        if (method_str == "4-mer-filter")
+            return run2<k_mer_filter_multi_gpu_default<4, distance_function>, distance_function>(
+                barcodes, read_file_reader, rejection_threshold, dist);
+
+        if (method_str == "5-mer-filter")
+            return run2<k_mer_filter_multi_gpu_default<5, distance_function>, distance_function>(
+                barcodes, read_file_reader, rejection_threshold, dist);
+
+        if (method_str == "6-mer-filter")
+            return run2<k_mer_filter_multi_gpu_default<6, distance_function>, distance_function>(
+                barcodes, read_file_reader, rejection_threshold, dist);
+
+        if (method_str == "7-mer-filter")
+            return run2<k_mer_filter_multi_gpu_default<7, distance_function>, distance_function>(
+                barcodes, read_file_reader, rejection_threshold, dist);
+
+        if (method_str == "7-4-mer-filter")
+            return run2<two_step_k_mer_filter_multi_gpu_default<7, 4, distance_function>, distance_function>(
+                barcodes, read_file_reader, rejection_threshold, dist);
+
+
+        std::cerr << "Error! Unknown barcode calling method" << method_str << std::endl;
+        return 7;
+
+    }
+
+    // if no gpu flag was given
+
+    if (method_str == "4-mer-filter")
+        return run2<k_mer_filter_host_default<4, distance_function>, distance_function>(
+            barcodes, read_file_reader, rejection_threshold, dist);
+
+    if (method_str == "5-mer-filter")
+        return run2<k_mer_filter_host_default<5, distance_function>, distance_function>(
+            barcodes, read_file_reader, rejection_threshold, dist);
+
+    if (method_str == "6-mer-filter")
+        return run2<k_mer_filter_host_default<6, distance_function>, distance_function>(
+            barcodes, read_file_reader, rejection_threshold, dist);
+
+    if (method_str == "7-mer-filter")
+        return run2<k_mer_filter_host_default<7, distance_function>, distance_function>(
+            barcodes, read_file_reader, rejection_threshold, dist);
+
+    if (method_str == "7-4-mer-filter")
+        return run2<two_step_k_mer_filter_host_default<7, 4, distance_function>, distance_function>(
+            barcodes, read_file_reader, rejection_threshold, dist);
+
+    std::cerr << "Error! Unknown barcode calling method" << method_str << std::endl;
+    return 8;
+}
 
 int main(int argc, char** argv) {
 
@@ -177,150 +334,63 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    bool gpu = args.count("gpu") || args.count("g");
-    bool verbose = args.count("verbose") || args.count("v");
+    barcode_file_str = args.contains("barcodes") ? args["barcodes"] : args["b"];
+    read_file_str = args.contains("reads") ? args["reads"] : args["r"];
+    threshold_str = get_arg(args, "threshold_distance", "t", "");
+    distance_str = get_arg(args, "distance", "d", "sequence-levenshtein");
+    verbose = args.count("verbose") || args.count("v");
+    gpu = args.count("gpu") || args.count("g");
+    method_str = get_arg(args, "method", "m", "4-mer-filter");
 
-    std::string barcode_file = args.contains("barcodes") ? args["barcodes"] : args["b"];
-    std::string read_file = args.contains("reads") ? args["reads"] : args["r"];
-
-    if (barcode_file.empty() || read_file.empty()) {
+    if (barcode_file_str.empty() || read_file_str.empty()) {
         std::cerr << "Error! Missing required arguments --barcodes and --reads" << std::endl;
         return 4;
     }
 
-    std::string method_str = get_arg(args, "method", "m", "4-mer-filter");
-    std::string distance_str = get_arg(args, "distance", "d", "sequence-levenshtein");
-    std::string threshold_str = get_arg(args, "threshold_distance", "t", "");
+    // load barcode from disk
+    const auto barcodes = barcode_set_bc_reader(barcode_file_str);
 
-    // load barcode and reads from disk
-    auto barcodes = barcode_set_bc_reader(barcode_file);
-    auto reads = read_set_fastq_reader(read_file);
+    // create a reader object to load chunks of reads from disk
+    auto read_file_reader = read_file_fastq_reader(read_file_str);
 
     if (barcodes.empty()) {
         std::cerr << "Error! Empty barcode file!" << std::endl;
         return 1;
     }
 
-    if (reads.empty()) {
-        std::cerr << "Error! Empty read file!" << std::endl;
-        return 2;
-    }
-
     // read threshold
-    int32_t rejection_threshold = INT32_MAX;
+    int32_t rejection_threshold = DEFAULT_REJECTION_THRESHOLD;
     if (!threshold_str.empty())
         rejection_threshold = std::stoi(threshold_str);
 
-
     /****************************************************************************
-     * Select the distance function. We use weighted variants in all cases.
+     * Select the cost and distance measure.
      ***************************************************************************/
 
-    std::unique_ptr<distance_measure> dist;
-    if (distance_str == "levenshtein")
-        dist = std::make_unique<weighted_levenshtein_v1>(unit_costs());
-    else if (distance_str == "sequence-levenshtein")
-        dist = std::make_unique<weighted_sequence_levenshtein_v1>(unit_costs());
-    else {
+    // if no costs are given, use uniform costs
+    if (cost_file_str.empty()) {
+
+        if (distance_str == "levenshtein")
+            return run1<weighted_levenshtein_v1<unit_costs>>
+                (barcodes, read_file_reader, rejection_threshold, weighted_levenshtein_v1<unit_costs>());
+        if (distance_str == "sequence-levenshtein")
+            return run1<weighted_sequence_levenshtein_v1<unit_costs>>
+                (barcodes, read_file_reader, rejection_threshold, weighted_sequence_levenshtein_v1<unit_costs>());
+
         std::cerr << "Error! Unknown distance!" << std::endl;
         return 3;
     }
 
-    /****************************************************************************
-    * Select the calling algorithm.
-    ****************************************************************************/
+    // if explicit costs are given, load the cost file and run with explicit costs
+    if (distance_str == "levenshtein")
+        return run1<weighted_levenshtein_v1<explicit_costs>>
+        (barcodes, read_file_reader, rejection_threshold,
+         weighted_levenshtein_v1<explicit_costs>(cost_file_str));
+    if (distance_str == "sequence-levenshtein")
+        return run1<weighted_sequence_levenshtein_v1<explicit_costs>>
+        (barcodes, read_file_reader, rejection_threshold,
+         weighted_sequence_levenshtein_v1<explicit_costs>(cost_file_str));
 
-    std::unique_ptr<barcode_calling_algorithm> alg;
-
-    std::string gpu_name = "none";
-
-    if (gpu) {
-
-        /******************************************************************
-         * Read basic gpu data
-         *****************************************************************/
-
-        // read GPU data
-        int deviceCount = 0;
-        cudaError_t err = cudaGetDeviceCount(&deviceCount);
-        if (err != cudaSuccess) {
-            std::cerr << "Error while reading CUDA device count: "
-                      << cudaGetErrorString(err) << std::endl;
-            return 1;
-        }
-
-        if (deviceCount == 0) {
-            std::cout << "Error! No CUDA-capable GPUs found!" << std::endl;
-            return -4;
-        }
-
-        cudaDeviceProp prop;
-        cudaGetDeviceProperties(&prop, 0); // 0 = first GPU
-        gpu_name = prop.name;
-
-        if (method_str == "4-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<4>>(*dist);
-        else if (method_str == "5-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<5>>(*dist);
-        else if (method_str == "6-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<6>>(*dist);
-        else if (method_str == "7-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_gpu_v5<7>>(*dist);
-        else if (method_str == "7-4-mer-filter")
-            alg = std::make_unique<two_step_k_mer_filtered_calling_gpu_v1<7,4>>(*dist, rejection_threshold);
-        else {
-            throw std::runtime_error("Unknown barcode calling method.");
-        }
-    }
-    else {
-        if (method_str == "4-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<4>>(*dist);
-        else if (method_str == "5-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<5>>(*dist);
-        else if (method_str == "6-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<6>>(*dist);
-        else if (method_str == "7-mer-filter")
-            alg = std::make_unique<k_mer_filtered_calling_host_v2<7>>(*dist);
-        else if (method_str == "7-4-mer-filter")
-            alg = std::make_unique<two_step_k_mer_filtered_calling_host_v1<7,4>>(*dist, rejection_threshold);
-        else {
-            throw std::runtime_error("Unknown barcode calling method.");
-        }
-    }
-
-    // start measuring running time
-    auto start = std::chrono::high_resolution_clock::now();
-
-    // run the algorithm to compute a barcode assignment
-    auto ass = alg->run(barcodes, reads);
-
-    // stop measuring running time
-    auto end = std::chrono::high_resolution_clock::now();
-
-    // output to the standard output stream
-    barcode_assignment_writer(barcodes, reads, ass, rejection_threshold).write(std::cout);
-
-    double running_time_sec = std::chrono::duration<double>(end - start).count();
-    if (verbose) {
-
-        // print debug information
-        std::cerr << "barcode_file             = " << barcode_file << std::endl;
-        std::cerr << "read_file                = " << read_file << std::endl;
-        std::cerr << "barcode_count            = " << barcodes.size() << std::endl;
-        std::cerr << "read_count               = " << reads.size() << std::endl;
-        std::cerr << "BARCODE_LENGTH           = " << BARCODE_LENGTH << std::endl;
-        std::cerr << "method                   = " << alg->get_name() << std::endl;
-        std::cerr << "distance                 = " << dist->get_name() << std::endl;
-        std::cerr << "rejection_threshold      = " << rejection_threshold << std::endl;
-        std::cerr << "OMP_NUM_THREADS          = " << omp_get_max_threads() << std::endl;
-        std::cerr << "GPU                      = " << gpu_name << std::endl;
-
-        unsigned num_assigned = number_of_assigned_reads(reads, ass, rejection_threshold);
-        float percent_assigned = 100.0 * num_assigned / reads.size();
-        std::cerr << "total running time (sec) = " << running_time_sec << std::endl;
-        std::cerr << "number of assigned reads = " << num_assigned << " ("
-        << percent_assigned << " %)" << std::endl;
-    }
-
-    return 0;
+    std::cerr << "Error! Unknown distance!" << std::endl;
+    return 3;
 }

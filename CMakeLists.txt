@@ -59,7 +59,8 @@ message(STATUS "Final CUDA archs: ${CMAKE_CUDA_ARCHITECTURES}")
 
 # ----------------------------------------------------------------------
 
-project(quik LANGUAGES CXX CUDA)
+
+project(barcode_calling LANGUAGES CXX CUDA)
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
@@ -78,33 +79,14 @@ configure_file(
 
 
 
-find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED COMPONENTS CXX)
 
-add_executable(simulate_errors
-        src/simulate_errors.cu
-)
+add_executable(simulate_errors src/simulate_errors.cu)
 
-add_executable(quik
-        src/quik.cu
-        src/distance/pseudo_distance_all_v1.h
-        src/calling_algorithms/k_mer_map_host_v1.h
-        src/determine_barcode_length.h
-        src/barcode_assignment_writer.h
-        src/barcode_set.h
-        src/barcode_set_bc_reader.h
-        src/cuda_helper.cuh
-        src/number_of_assigned_reads.h
-)
+add_executable(quik src/quik.cu)
 
-add_executable(benchmark_barcode_calling
-        src/calling_algorithms/benchmark_barcode_calling.cu
-        src/determine_barcode_length.h
-        src/sequence_fixed_length.h
-        src/sequence_variable_length.h
-        src/extended_barcode_assignment.h
-        src/distance/distance_measure.h
-        src/calling_algorithms/barcode_calling_algorithm.h
-)
+add_executable(benchmark_barcode_calling src/calling_algorithms/benchmark_barcode_calling.cu)
+
 
 # Aktivieren von OpenMP für den Host-Compiler
 if(OpenMP_CXX_FOUND)
@@ -115,49 +97,24 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 # Aktivieren von OpenMP für den CUDA-Compiler
-set_target_properties(quik PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON
-)
-
-target_compile_options(quik
-        PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${OpenMP_CXX_FLAGS}>
-)
-
-target_compile_options(quik PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>
-)
-
-target_compile_options(benchmark_barcode_calling PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>
-)
-
-target_compile_options(simulate_errors PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>
-)
+set_target_properties(quik PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_target_properties(benchmark_barcode_calling PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_target_properties(simulate_errors PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+target_compile_options(quik PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${OpenMP_CXX_FLAGS}>)
+target_compile_options(benchmark_barcode_calling PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${OpenMP_CXX_FLAGS}>)
+target_compile_options(simulate_errors PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${OpenMP_CXX_FLAGS}>)
 
 # use the generated include files with constants
-
-target_include_directories(quik PRIVATE
-        ${CMAKE_BINARY_DIR}/generated
-)
-
-target_include_directories(benchmark_barcode_calling PRIVATE
-        ${CMAKE_BINARY_DIR}/generated
-)
-
-target_include_directories(simulate_errors PRIVATE
-        ${CMAKE_BINARY_DIR}/generated
-)
+target_include_directories(quik PRIVATE ${CMAKE_BINARY_DIR}/generated)
+target_include_directories(benchmark_barcode_calling PRIVATE ${CMAKE_BINARY_DIR}/generated)
+target_include_directories(simulate_errors PRIVATE ${CMAKE_BINARY_DIR}/generated)
 
 # relax warning #20013-D
-target_compile_options(quik PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
-)
+target_compile_options(quik PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+target_compile_options(benchmark_barcode_calling PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+target_compile_options(simulate_errors PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 
-target_compile_options(benchmark_barcode_calling PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
-)
-
-target_compile_options(simulate_errors PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
-)
+# force the nvcc compiler to use c++20
+target_compile_options(quik PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>)
+target_compile_options(benchmark_barcode_calling PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>)
+target_compile_options(simulate_errors PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>)

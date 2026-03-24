@@ -2,34 +2,34 @@
 // Created by steffen on 17.05.24.
 //
 
-#ifndef INC_WEIGHTED_levenshtein_v1_H
-#define INC_WEIGHTED_levenshtein_v1_H
+#pragma once
 
-#include "distance_measure.h"
 #include "../barcode.h"
 #include "../read.h"
-#include "../alignment_costs.h"
+#include "../unit_costs.h"
 
 namespace barcode_calling {
 
     /**
-     * Generalized distance with non-uniform costs.
+     * Generalized distance which allows for non-uniform costs.
      */
-    class weighted_levenshtein_v1 : public distance_measure {
+    template <typename alignment_costs = unit_costs>
+    class weighted_levenshtein_v1 {
 
-        alignment_costs c;
+        const alignment_costs c;
 
     public:
-        weighted_levenshtein_v1(const alignment_costs& c) :
-            distance_measure("weighted_levenshtein_v1"),
-            c(c) {}
+        static std::string name() { return "weighted_levenshtein_v1"; }
 
-        __host__ __device__ int32_t operator()(const barcode& b, const read& r) const override {
-            return evaluate(b, r, c);
-        }
+        weighted_levenshtein_v1() = default;
 
-        __host__ __device__ static int32_t evaluate(const barcode& b, const read& r,
-                                                    const alignment_costs& c) {
+        __host__
+        weighted_levenshtein_v1(alignment_costs c) : c(c) {}
+
+        const alignment_costs& get_costs() const { return c; }
+
+        __host__ __device__
+        int32_t operator()(const barcode& b, const read& r) const {
 
             /********************************************************************
              * We construct a matrix D with r.length() + 1 rows and
@@ -52,13 +52,13 @@ namespace barcode_calling {
             // initialize the first row (associated to read position i=0)
             D_i[0] = 0;
             for (unsigned j = 1; j <= BARCODE_LENGTH; j++)
-                D_i[j] = D_i[j - 1] + c.get(b[j - 1], '_');
+                D_i[j] = D_i[j - 1] + c.get(b[j - 1], extended_base('_'));
 
             // for each character of the read
             for (unsigned i = 1; i <= r.length(); i++) {
 
                 int32_t x = D_i[0]; // x == D[i-1][j-1]
-                D_i[0] = D_i[0] + c.get('_', r[i - 1]);
+                D_i[0] = D_i[0] + c.get(extended_base('_'), r[i - 1]);
 
                 for (uint32_t j = 1; j <= BARCODE_LENGTH; j++) {
 
@@ -76,17 +76,18 @@ namespace barcode_calling {
                      * }
                      ****************************************************************************/
 
-                    D_i[j] = min(x + c.get(r[i - 1], b[j - 1]), y + c.get(r[i - 1], '_'));
-                    D_i[j] = min(D_i[j], D_i[j - 1] + c.get('_', b[j - 1]));
+                    int32_t x1 = x + c.get(r[i - 1], b[j - 1]);
+                    int32_t x2 = y + c.get(r[i - 1], extended_base('_'));
+                    int32_t x3 = D_i[j - 1] + c.get(extended_base('_'), b[j - 1]);
+                    D_i[j] = min(x1, min(x2, x3));
 
                     x = y;
                 }
             }
 
-            return D_i[BARCODE_LENGTH];;
+            return D_i[BARCODE_LENGTH];
+
         }
 
     };
 }
-
-#endif //INC_WEIGHTED_levenshtein_v1_H

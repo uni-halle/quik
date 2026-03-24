@@ -4,7 +4,7 @@
 
 #include <fstream>
 #include <iostream>
-#include "read.h"
+#include "read_file.h"
 #include "barcode.h"
 #include <random>
 
@@ -12,7 +12,7 @@
 #include "barcode_assignment_writer.h"
 #include "barcode_set.h"
 #include "barcode_set_bc_reader.h"
-#include "read_set_fastq_writer.h"
+#include "read_file_fastq_writer.h"
 #include "distance/sequence_levenshtein_v4.cuh"
 
 std::random_device rd;
@@ -117,15 +117,15 @@ int main(int argc, char** argv) {
     std::string barcode_file(argv[1]);
     double p = atof(argv[2]);
     int read_count = atoi(argv[3]);
-    std::ofstream read_file(argv[4]);
-    std::ofstream label_file(argv[5]);
+    std::ofstream read_stream(argv[4]);
+    std::ofstream label_stream(argv[5]);
     unsigned read_length = atoi(argv[6]);
 
     // read barcode file
     auto barcodes = barcode_set_bc_reader(barcode_file);
 
     // construct a read set and a ground truth assignment
-    read_set reads;
+    read_file reads;
     barcode_assignment ass(read_count);
 
     // simulate sequencing errors
@@ -133,14 +133,14 @@ int main(int argc, char** argv) {
         unsigned barcode_id = read_id % barcodes.size();
         const barcode& b = barcodes[barcode_id];
         std::string read_sequence = scramble(b, p / 3, p / 3, p / 3, read_length);
-        std::string read_name = "read" + std::to_string(read_id + 1);
+        std::string read_name = "read_" + std::to_string(read_id + 1) + "_from_barcode_" + std::to_string(barcode_id+1);
         read r = reads.add(read_sequence, read_name);
         ass.assign_read_to_barcode(read_id, barcode_id, sequence_levenshtein_v4()(b,r));
     }
 
     // output read set and ground truth
-    read_set_fastq_writer(reads).write(read_file);
-    barcode_assignment_writer(barcodes, reads, ass).write(label_file);
+    read_file_fastq_writer(reads).write(read_stream);
+    barcode_assignment_writer(barcodes, reads, ass).write(label_stream);
 
     return 0;
 }

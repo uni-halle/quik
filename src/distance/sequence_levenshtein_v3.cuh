@@ -5,18 +5,23 @@
 #ifndef INC_2OPT_SEQUENCE_LEVENSHTEIN_DISTANCE_V3_H
 #define INC_2OPT_SEQUENCE_LEVENSHTEIN_DISTANCE_V3_H
 
-#include "distance_measure.h"
+#include "../unit_costs.h"
+
 
 namespace barcode_calling {
 
     /**
      * Calculate the SL-distance between some read and barcode.
      */
-    class sequence_levenshtein_v3 : public distance_measure {
+    template<typename alignment_costs = unit_costs>
+    class sequence_levenshtein_v3 {
 
     public:
 
-        __host__ __device__ static uint8_t evaluate(const barcode& b, const read& r) {
+        static std::string name() { return "sequence_levenshtein_v3"; }
+
+        __host__ __device__
+        inline int32_t operator()(const barcode& b, const read& r) const {
 
             /********************************************************************
              * We construct a matrix D with r.length() + 1 rows and
@@ -59,7 +64,7 @@ namespace barcode_calling {
 
                 for (uint8_t j = 1; j <= BARCODE_LENGTH; j++) {
 
-                    uint8_t edit_cost = b[i - 1] == r[j - 1] ? 0 : 1;
+                    uint8_t edit_cost = b[i - 1].to_uint8() == r[j - 1].to_uint8() ? 0 : 1;
                     uint8_t y = D_i[j]; // y == D[i-1][j]
 
                     /*****************************************************************************
@@ -89,14 +94,6 @@ namespace barcode_calling {
                 min_dist = min(min_dist, D_i[j]);
 
             return min_dist;
-        }
-
-    public:
-
-        sequence_levenshtein_v3() : distance_measure("sequence_levenshtein_v3") {}
-
-        __host__ __device__ inline int32_t operator()(const barcode& b, const read& r) const override {
-            return evaluate(b, r);
         }
 
     };

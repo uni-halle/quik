@@ -15,14 +15,14 @@ namespace barcode_calling {
      * Calculate min { L-dist(b,r), upper_bound } which is usually faster than calculating L-dist(b,r).
      * @return
      */
-    class levenshtein_v3 : public distance_measure {
-
-    protected:
-        uint8_t upper_bound = UINT8_MAX;
+    class levenshtein_v3 {
 
     public:
 
-        __host__ __device__ uint8_t static evaluate(const barcode& b, const read& r, uint8_t upper_bound = UINT8_MAX) {
+        static std::string name() { return "levenshtein_v3"; }
+
+        __host__ __device__ int32_t
+        operator()(const barcode& b, const read& r, uint8_t upper_bound) const {
 
             /**********************************************************************************
             * We construct a matrix D with r.length() + 1 rows and
@@ -60,7 +60,7 @@ namespace barcode_calling {
 
             // fall back to the standard DP-algorithm
             if (upper_bound >= b.length() || upper_bound >= r.length())
-                return levenshtein_v1::evaluate(b, r);
+                return levenshtein_v1{}(b, r);
 
             uint8_t D_i[BARCODE_LENGTH + 1]; // i-th row of the distance matrix
 
@@ -140,17 +140,6 @@ namespace barcode_calling {
             //printf("\n");
 
             return D_i[BARCODE_LENGTH];
-        }
-
-    public:
-        levenshtein_v3() : distance_measure("levenshtein_v3") {}
-
-        __host__ __device__
-        void set_upper_bound(uint8_t upper_bound) { this->upper_bound = upper_bound; }
-
-        __host__ __device__ int32_t
-        operator()(const barcode& b, const read& r) const override {
-            return evaluate(b, r, upper_bound);
         }
     };
 }

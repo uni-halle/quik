@@ -21,7 +21,7 @@ namespace barcode_calling {
     public:
         barcode_assignment_writer(
             const barcode_set& barcodes,
-            const read_set& reads,
+            const read_file& reads,
             const barcode_assignment& ass,
             const int rejection_threshold = INT_MAX) {
 
@@ -29,10 +29,10 @@ namespace barcode_calling {
             for (unsigned read_id = 0; read_id < reads.size(); ++read_id) {
 
                 // truncate everything right of the first whitespace
-                if (ass.get_distance(read_id) <= rejection_threshold) {
-                    ss << reads.get_name_of(read_id) << "\t";
-                    ss << barcodes.get_name_of(ass.get_assigned_barcode(read_id)) << "\t";
-                    ss << ass.get_distance(read_id) << "\n";
+                if (ass.get_closest_distances()[read_id] <= rejection_threshold) {
+                    ss << reads.get_fastq_id(read_id) << "\t";
+                    ss << barcodes.get_name_of(ass.get_closest_barcodes()[read_id]) << "\t";
+                    ss << ass.get_closest_distances()[read_id] << "\n";
                 }
             }
         }

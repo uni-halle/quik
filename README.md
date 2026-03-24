@@ -75,22 +75,22 @@ Optional arguments:
                             A read is only assigned to a barcode if its
                             distance is smaller or equal than this integer.
 
-                            (default: 2.147.483.647 (INT32_MAX))
+                            (default: 8)
 
   -m, --method <STRING>     Barcode matching method
                             Possible values:
                             
                               4-mer-filter
-                                  Highest accuracy, slowest filtering variant
+                                  High accuracy, decent running time
 
                               5-mer-filter
-                                  Decent accuracy, faster than 4-mer-filter
+                                  Decent accuracy, faster than the 4-mer filter
 
                               6-mer-filter
-                                  Low accuracy, much faster than 5-mer-filter
+                                  Low accuracy, faster than the 5-mer filter
 
                               7-mer-filter
-                                  Lowest accuracy, fastest method
+                                  Lowest accuracy, faster than the 6-mer filter
 
                               7-4-mer-filter
                                   First runs the fast 7-mer-filter to assign the
@@ -99,7 +99,8 @@ Optional arguments:
 
                             (default: 4-mer-filter)
 
-  -g, --gpu                 Apply all calculations on the first GPU visible to quik.
+  -g, --gpu                 Apply the calculations on all CUDA capable GPUs that
+                            are available at this system.
                             This is usually much faster than non-gpu mode.
 
   -h, --help                Show this help message and exit

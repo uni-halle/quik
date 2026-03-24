@@ -16,11 +16,13 @@ namespace barcode_calling {
      * @param r
      * @return
      */
-    class levenshtein_v1 : public distance_measure {
+    class levenshtein_v1 {
 
     public:
 
-        __host__ __device__ static uint8_t evaluate(const barcode& b, const read& r) {
+        static std::string name() { return "levenshtein_v1"; }
+
+        __host__ __device__ int32_t operator()(const barcode& b, const read& r) const {
 
             /********************************************************************
           * We construct a matrix D with r.length() + 1 rows and
@@ -61,7 +63,7 @@ namespace barcode_calling {
                 D_i[0] = i;
                 for (uint8_t j = 1; j <= BARCODE_LENGTH; j++) {
 
-                    uint8_t edit_cost = b[i - 1] == r[j - 1] ? 0 : 1;
+                    uint8_t edit_cost = b[i - 1].to_uint8() == r[j - 1].to_uint8() ? 0 : 1;
                     uint8_t y = D_i[j]; // y == D[i-1][j]
 
                     /*****************************************************************************
@@ -82,15 +84,7 @@ namespace barcode_calling {
             }
 
             return D_i[BARCODE_LENGTH];
-        }
 
-    public:
-
-        levenshtein_v1() : distance_measure("levenshtein_v1") {}
-
-        __host__ __device__ int32_t operator()
-        (const barcode& b, const read& r) const override {
-            return evaluate(b, r);
         }
     };
 

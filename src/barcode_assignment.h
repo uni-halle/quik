@@ -7,6 +7,8 @@
 
 #include <vector>
 
+#include "cuda_helper.cuh"
+
 namespace barcode_calling {
 
     struct barcode_assignment {
@@ -14,39 +16,48 @@ namespace barcode_calling {
     protected:
 
         // to each read, we assign one barcode and the distance to the assigned barcode
-        std::vector<unsigned> assigned_barcode;
-        std::vector<int> distance;
+        unsigned* closest_barcodes = nullptr;
+        int32_t* closest_distances = nullptr;
+
+        size_t read_count = 0;
 
     public:
+
         /**
          *  Create an empty assignment, in which each read is unassigned.
          */
-        explicit barcode_assignment(unsigned read_count)
-            : assigned_barcode(read_count, UINT_MAX),
-              distance(read_count, INT_MAX) {};
+        barcode_assignment(const size_t read_count) : read_count(read_count) {
+            CUDA_CHECK(cudaMallocHost(&closest_barcodes, read_count * sizeof(unsigned)));
+            CUDA_CHECK(cudaMallocHost(&closest_distances, read_count * sizeof(int32_t)));
+            std::fill_n(closest_barcodes, read_count, UINT_MAX);
+            std::fill_n(closest_distances, read_count, INT32_MAX);
+        }
 
-        /**
-         * Is a specific read assigned to some barcode?
-         * @param read_id
-         * @return
-         */
+        virtual ~barcode_assignment() {
+            CUDA_CHECK(cudaFreeHost(closest_barcodes));
+            CUDA_CHECK(cudaFreeHost(closest_distances));
+        }
+
         bool is_assigned_to_some_barcode(unsigned read_id) const {
-            return assigned_barcode[read_id] != UINT_MAX;
+            return closest_barcodes[read_id] != UINT_MAX;
         }
 
-        unsigned get_assigned_barcode(unsigned read_id) const {
-            return assigned_barcode[read_id];
+        const unsigned* get_closest_barcodes() const {
+            return closest_barcodes;
         }
 
-        int get_distance(unsigned read_id) const {
-            return distance[read_id];
+        const int32_t* get_closest_distances() const {
+            return closest_distances;
         }
 
-        void assign_read_to_barcode(unsigned read_id, unsigned barcode_id, int dist) {
-            assigned_barcode[read_id] = barcode_id;
-            distance[read_id] = dist;
+        void assign_read_to_barcode(unsigned read_id, unsigned barcode_id, int32_t dist) {
+            closest_barcodes[read_id] = barcode_id;
+            closest_distances[read_id] = dist;
         }
 
+        size_t get_read_count() const {
+            return read_count;
+        }
     };
 }
 

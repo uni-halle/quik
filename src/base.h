@@ -7,36 +7,56 @@
 
 #include "extended_base.h"
 
-class base : public extended_base {
+namespace barcode_calling {
 
-    /*****************************************************
-     * A = 00 = 0
-     * C = 01 = 1
-     * G = 10 = 2
-     * T = 11 = 3
-     *****************************************************/
+    class base : public extended_base {
 
+        /*****************************************************
+         * A = 00 = 0
+         * C = 01 = 1
+         * T = 10 = 2
+         * G = 11 = 3
+         *****************************************************/
 
-public:
+    public:
 
-    /**
-     * Construct a base from the character 'A', 'C', 'G', 'T'.
-     * @param c
-     */
-    __host__ __device__ base(const char c) : extended_base(c) {
-        assert(c != '-' && c != '_');
-    }
+        /**
+         * Construct a base from the character 'A', 'C', 'G', 'T' and lower case letters.
+         *
+         * char	ASCII	(c >> 1) & 3
+         * A	65	    0
+         * C	67	    1
+         * G	71    	3
+         * T	84	    2
+         * a	97	    0
+         * c	99	    1
+         * g	103	    3
+         * t	116	    2
+         *
+         * @param c
+         */
+        __host__ __device__
+        explicit base(const char c) : extended_base(static_cast<uint8_t>((c >> 1) & 3)) {
+            assert(c == 'A' || c == 'C' || c == 'G' || c == 'T'
+                || c == 'a' || c == 'c' || c == 'g' || c == 't');
+            assert(to_char() == c);
+        }
 
-    __host__ __device__ static base from_uint8(uint8_t b) {
-        static constexpr char table[] = {'A', 'C', 'G', 'T', '-'};
-        return base(table[b]);
-    }
-
-    __host__ __device__
-    bool operator==(const base& b) const {
-        return this->to_char() == b.to_char();
-    }
-};
-
+        /**
+         * Construct a base from an uint8_t.
+         *
+         * 0 -> 'A'
+         * 1 -> 'C'
+         * 2 -> 'T'
+         * 3 -> 'G'
+         *
+         * @param value 0 <= value <= 3
+         */
+        __host__ __device__
+         explicit base(uint8_t value) : extended_base(value) {
+            assert(value <= 4);
+        }
+    };
+}
 
 #endif //BASE_H

@@ -21,19 +21,22 @@ namespace barcode_calling {
     public:
         extended_barcode_assignment_writer(
             const barcode_set& barcodes,
-            const read_set& reads,
+            const read_file& reads,
             const extended_barcode_assignment& ass,
-            const int rejection_threshold) {
+            const int32_t rejection_threshold = INT32_MAX) {
 
-            //ss << "read\tbarcode1\tbarcode2\tdistance1\tdistance2\n";
-            for (unsigned read_id = 0; read_id < reads.size(); ++read_id) {
+            ss << "read\tbarcode1\tbarcode2\tdistance1\tdistance2\n";
+            for (unsigned read_id = 0; read_id < ass.get_read_count(); ++read_id) {
 
-                if (ass.get_distance_to_1st_barcode(read_id) <= rejection_threshold) {
-                    ss << reads.get_name_of(read_id) << "\t";
-                    ss << barcodes.get_name_of(ass.get_1st_barcode(read_id)) << "\t";
-                    ss << barcodes.get_name_of(ass.get_2nd_barcode(read_id)) << "\t";
-                    ss << ass.get_distance_to_1st_barcode(read_id) << "\t";
-                    ss << ass.get_distance_to_2nd_barcode(read_id) << "\n";
+                if (ass.get_1st_distances()[read_id] <= rejection_threshold) {
+                    ss << reads.get_fastq_id(read_id) << "\t";
+                    //ss << read_id << "\t";
+                    //ss << ass.get_1st_barcodes()[read_id] << "\t";
+                    //ss << ass.get_2nd_barcodes()[read_id] << "\t";
+                    ss << barcodes.get_name_of(ass.get_1st_barcodes()[read_id]) << "\t";
+                    ss << barcodes.get_name_of(ass.get_2nd_barcodes()[read_id]) << "\t";
+                    ss << ass.get_1st_distances()[read_id] << "\t";
+                    ss << ass.get_2nd_distances()[read_id] << "\n";
                 }
             }
         }

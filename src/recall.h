@@ -18,7 +18,7 @@ namespace barcode_calling {
 
         for (unsigned read_id = 0; read_id < reads.size(); read_id++) {
             if (assignment.is_assigned_to_some_barcode(read_id)
-                && assignment.get_distance(read_id) <= rejection_threshold) {
+                && assignment.get_closest_distances()[read_id] <= rejection_threshold) {
                 accepted_reads++;
             }
         }
