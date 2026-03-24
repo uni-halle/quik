@@ -8,7 +8,7 @@
 #include "read_set.h"
 #include "barcode_assignment.h"
 
-namespace barcode_calling {
+namespace quik {
 
     inline unsigned number_of_assigned_reads(
         const size_t read_count,

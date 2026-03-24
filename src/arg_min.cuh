@@ -5,7 +5,7 @@
 #ifndef BARCODE_CALLING_ARG_MIN_CUH
 #define BARCODE_CALLING_ARG_MIN_CUH
 
-namespace barcode_calling {
+namespace quik {
 
     /**
      * Determine from the set of indices an index i such that keys[i] is minimum.

@@ -19,7 +19,7 @@ std::random_device rd;
 std::default_random_engine eng(0);
 std::uniform_real_distribution<double> distr(0, 1);
 
-using namespace barcode_calling;
+using namespace quik;
 
 // simulate a synthesis error
 std::string scramble(const barcode& b,

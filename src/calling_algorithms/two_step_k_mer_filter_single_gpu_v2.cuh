@@ -6,7 +6,7 @@
 
 #include "k_mer_filter_single_gpu_default.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k_large,
               unsigned k_small,

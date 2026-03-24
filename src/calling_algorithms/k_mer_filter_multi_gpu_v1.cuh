@@ -7,7 +7,7 @@
 #include "generic_multi_gpu_v1.cuh"
 #include "k_mer_filter_single_gpu_default.cuh"
 
-namespace barcode_calling {
+namespace quik {
     template <unsigned k,
               typename distance_function>
     class k_mer_filter_multi_gpu_v1 : public generic_multi_gpu_v1<

@@ -8,7 +8,7 @@
 #include <string>
 
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k_large, unsigned k_small, typename distance_function>
     class two_step_k_mer_filter_multi_gpu_v2 :

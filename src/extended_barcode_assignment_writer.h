@@ -11,7 +11,7 @@
 #include "barcode_set.h"
 #include "read_set.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class extended_barcode_assignment_writer {
 
@@ -25,7 +25,6 @@ namespace barcode_calling {
             const extended_barcode_assignment& ass,
             const int32_t rejection_threshold = INT32_MAX) {
 
-            ss << "read\tbarcode1\tbarcode2\tdistance1\tdistance2\n";
             for (unsigned read_id = 0; read_id < ass.get_read_count(); ++read_id) {
 
                 if (ass.get_1st_distances()[read_id] <= rejection_threshold) {
@@ -34,11 +33,16 @@ namespace barcode_calling {
                     //ss << ass.get_1st_barcodes()[read_id] << "\t";
                     //ss << ass.get_2nd_barcodes()[read_id] << "\t";
                     ss << barcodes.get_name_of(ass.get_1st_barcodes()[read_id]) << "\t";
-                    ss << barcodes.get_name_of(ass.get_2nd_barcodes()[read_id]) << "\t";
+                    // ss << barcodes.get_name_of(ass.get_2nd_barcodes()[read_id]) << "\t";
                     ss << ass.get_1st_distances()[read_id] << "\t";
-                    ss << ass.get_2nd_distances()[read_id] << "\n";
+                    // ss << ass.get_2nd_distances()[read_id]
+                    ss << "\n";
                 }
             }
+        }
+
+        static void write_header(std::ostream& out) {
+            out << "read\tbarcode1\tdistance1\n";
         }
 
         void write(std::ostream& out) const {

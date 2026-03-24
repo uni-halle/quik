@@ -5,7 +5,6 @@
 #pragma once
 
 #include "../unit_costs.h"
-#include "../extended_barcode_assignment.h"
 #include <vector>
 #include <chrono>
 #include <algorithm>
@@ -15,7 +14,7 @@
 
 #define timing false
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k,
               typename distance_function,

@@ -7,7 +7,7 @@
 
 #include "sequence.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class read : public sequence {
 

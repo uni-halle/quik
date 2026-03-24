@@ -9,7 +9,7 @@
 #include <sstream>
 #include <ostream>
 
-namespace barcode_calling {
+namespace quik {
 
     class read_set_fastq_writer {
 

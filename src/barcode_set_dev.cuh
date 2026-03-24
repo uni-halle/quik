@@ -8,7 +8,7 @@
 #include "barcode_set.h"
 #include "cuda_device.cuh"
 
-namespace barcode_calling {
+namespace quik {
     class barcode_set_dev {
         /**
          * Re-alignment of a barcode set in a two-dimensional way:

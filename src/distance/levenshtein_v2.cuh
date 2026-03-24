@@ -11,7 +11,7 @@
 #include "levenshtein_v2.cuh"
 #include "levenshtein_v3.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
 
     /**

@@ -8,7 +8,7 @@
 #include "barcode_assignment.h"
 #include "read_set.h"
 
-namespace barcode_calling {
+namespace quik {
 
     inline double precision(
         const read_set& reads,

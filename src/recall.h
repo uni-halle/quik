@@ -7,7 +7,7 @@
 
 #include "barcode_assignment.h"
 
-namespace barcode_calling {
+namespace quik {
 
     inline double recall(
         const read_set& reads,

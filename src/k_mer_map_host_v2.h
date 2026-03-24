@@ -9,7 +9,7 @@
 #include "barcode.h"
 #include "barcode_set.h"
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k, unsigned PSEUDO_DISTANCE_WINDOW_SIZE>
     class k_mer_map_host_v2 {

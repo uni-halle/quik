@@ -8,7 +8,7 @@
 #include <vector>
 #include "read.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class read_file {
 

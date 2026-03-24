@@ -21,7 +21,7 @@
 #include "calling_algorithms/two_step_k_mer_filter_multi_gpu_default.cuh"
 #include "distance/weighted_sequence_levenshtein_v1.cuh"
 
-using namespace barcode_calling;
+using namespace quik;
 
 
 void print_help(std::ostream& os = std::cout) {
@@ -197,6 +197,8 @@ int run2(const barcode_set& barcodes,
      * While there are still reads in the file, load and process the next chunk of reads
      *****************************************************************************************/
 
+    extended_barcode_assignment_writer::write_header(std::cout);
+
     for (read_file read_f = read_file_reader.next(MAX_READ_COUNT); !read_f.empty();
         read_f = read_file_reader.next(MAX_READ_COUNT)) {
 
@@ -336,7 +338,7 @@ int main(int argc, char** argv) {
 
     barcode_file_str = args.contains("barcodes") ? args["barcodes"] : args["b"];
     read_file_str = args.contains("reads") ? args["reads"] : args["r"];
-    threshold_str = get_arg(args, "threshold_distance", "t", "");
+    threshold_str = get_arg(args, "threshold-distance", "t", "");
     distance_str = get_arg(args, "distance", "d", "sequence-levenshtein");
     verbose = args.count("verbose") || args.count("v");
     gpu = args.count("gpu") || args.count("g");

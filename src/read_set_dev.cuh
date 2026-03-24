@@ -7,7 +7,7 @@
 #include "cuda_helper.cuh"
 #include "cuda_device.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     class read_set_dev {
 

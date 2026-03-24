@@ -7,7 +7,7 @@
 
 #include "extended_base.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class base : public extended_base {
 

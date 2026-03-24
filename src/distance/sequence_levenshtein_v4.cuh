@@ -10,7 +10,7 @@
 #include "sequence_levenshtein_v3.cuh"
 #include "../unit_costs.h"
 
-namespace barcode_calling {
+namespace quik {
 
 
     /**

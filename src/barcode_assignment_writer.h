@@ -11,7 +11,7 @@
 #include "barcode_set.h"
 #include "read_set.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class barcode_assignment_writer {
 

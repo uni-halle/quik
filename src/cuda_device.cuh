@@ -6,7 +6,7 @@
 #define BARCODE_CALLING_CUDA_STREAM_CUH
 #include "cuda_helper.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     struct cuda_device {
 

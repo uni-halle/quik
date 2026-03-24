@@ -6,7 +6,7 @@
 #define BARCODE_CALLING_ALIGNMENT_HELPER_CUH
 #include <cstdint>
 
-namespace barcode_calling {
+namespace quik {
 
     class memory_alignment_helper {
 

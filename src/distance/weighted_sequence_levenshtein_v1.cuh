@@ -9,7 +9,7 @@
 #include "../read.h"
 #include "../unit_costs.h"
 
-namespace barcode_calling {
+namespace quik {
 
     /**
      * Generalized SL-distance that allows for non-uniform costs.

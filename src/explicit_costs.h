@@ -9,7 +9,7 @@
 #include <sstream>
 #include "extended_base.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class explicit_costs {
 
@@ -76,7 +76,7 @@ namespace barcode_calling {
             std::stringstream ss;
             for (const char x : {'A', 'C', 'G', 'T', '-'}) {
                 for (const char y : {'A', 'C', 'G', 'T', '-'}) {
-                    ss << get(barcode_calling::extended_base(x), extended_base(y)) << ",";
+                    ss << get(extended_base(x), extended_base(y)) << ",";
                 }
             }
             return ss.str();

@@ -9,7 +9,7 @@
 
 #include "cuda_helper.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     struct barcode_assignment {
 

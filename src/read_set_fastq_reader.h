@@ -7,7 +7,7 @@
 
 #include "read_set.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class read_set_fastq_reader : public read_set {
 

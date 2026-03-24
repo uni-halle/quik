@@ -8,7 +8,7 @@
 #include "../unit_costs.h"
 
 
-namespace barcode_calling {
+namespace quik {
 
     /**
      * Calculate the SL-distance between some read and barcode.

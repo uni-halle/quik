@@ -9,7 +9,7 @@
 #include <vector>
 #include "barcode.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class barcode_set : public std::vector<barcode> {
 

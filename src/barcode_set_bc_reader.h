@@ -6,7 +6,7 @@
 #define BARCODE_SET_FASTQ_READER_H
 #include "barcode_set.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class barcode_set_bc_reader : public barcode_set {
 

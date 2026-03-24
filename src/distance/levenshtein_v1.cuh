@@ -8,7 +8,7 @@
 #include "distance_measure.h"
 #include "../sequence.h"
 
-namespace barcode_calling {
+namespace quik {
 
     /**
      * Calculate the Levenshtein distance L-dist(b,r).

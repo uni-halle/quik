@@ -9,7 +9,7 @@
 
 #include "../barcode.h"
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k>
     class k_mer_map_host_v1 : public std::vector<std::vector<std::vector<unsigned>>> {

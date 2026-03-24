@@ -12,7 +12,7 @@
 #include <sstream>
 #include "base.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class sequence {
 

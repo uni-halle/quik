@@ -8,7 +8,7 @@
 
 #include "base.h"
 
-namespace barcode_calling {
+namespace quik {
 
     struct unit_costs {
 

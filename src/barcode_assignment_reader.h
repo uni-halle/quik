@@ -11,7 +11,7 @@
 #include <sstream>
 #include <string>
 
-namespace barcode_calling {
+namespace quik {
 
     class barcode_assignment_reader : public barcode_assignment {
 

@@ -24,7 +24,7 @@
 #include "../read_file_fastq_reader.h"
 #include "../barcode_assignment_reader.h"
 
-using namespace barcode_calling;
+using namespace quik;
 
 template <typename algorithm>
 void benchmark_algorithm(const barcode_set& barcodes,

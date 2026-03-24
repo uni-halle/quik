@@ -9,7 +9,7 @@
 #include "../extended_barcode_assignment.h"
 #include "../read_set.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class barcode_calling_algorithm : public extended_barcode_assignment {
 

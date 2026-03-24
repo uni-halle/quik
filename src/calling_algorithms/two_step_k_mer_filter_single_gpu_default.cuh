@@ -5,7 +5,7 @@
 #pragma once
 #include "two_step_k_mer_filter_single_gpu_v2.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k_large, unsigned k_small, typename distance_function>
     using two_step_k_mer_filter_single_gpu_default = two_step_k_mer_filter_single_gpu_v2<

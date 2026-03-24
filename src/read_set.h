@@ -8,7 +8,7 @@
 #include "read.h"
 #include "read_file.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class read_set {
 

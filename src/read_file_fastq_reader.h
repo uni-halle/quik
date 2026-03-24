@@ -7,7 +7,7 @@
 
 #include "read_file.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class read_file_fastq_reader {
 

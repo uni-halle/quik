@@ -10,7 +10,7 @@
 #include "cuda_device.cuh"
 #include "cuda_helper.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k>
     class k_mer_map_dev {

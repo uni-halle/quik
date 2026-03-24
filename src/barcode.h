@@ -8,7 +8,7 @@
 #include <constants.h>
 #include "sequence_fixed_length.h"
 
-namespace barcode_calling {
+namespace quik {
 
 
     class barcode : public sequence_fixed_length<BARCODE_LENGTH> {

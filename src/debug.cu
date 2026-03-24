@@ -7,7 +7,7 @@
 #include "distance/weighted_levenshtein_v1.cuh"
 #include "distance/weighted_sequence_levenshtein_v1.cuh"
 
-using namespace barcode_calling;
+using namespace quik;
 
 int main(int argc, char** argv) {
 

@@ -12,7 +12,7 @@
 
 #include "../extended_barcode_assignment_writer.h"
 
-namespace barcode_calling {
+namespace quik {
 
     template <typename sub_algorithm,
               typename distance_function>

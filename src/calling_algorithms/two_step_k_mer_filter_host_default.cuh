@@ -6,7 +6,7 @@
 
 #include "two_step_k_mer_filter_host_v1.h"
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k_large,
               unsigned k_small,

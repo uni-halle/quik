@@ -13,7 +13,7 @@
 #include "../arg_min.cuh"
 #include "../memory_alignment_helper.cuh"
 
-namespace barcode_calling {
+namespace quik {
     namespace k_mer_filter_gpu_v9_detail {
 
 

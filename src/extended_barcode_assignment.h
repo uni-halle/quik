@@ -10,7 +10,7 @@
 
 #include "cuda_helper.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     class extended_barcode_assignment : public barcode_assignment {
 

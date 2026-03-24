@@ -9,7 +9,7 @@
 #include "../read.h"
 #include "levenshtein_v1.cuh"
 
-namespace barcode_calling {
+namespace quik {
 
     /**
      * Calculate min { L-dist(b,r), upper_bound } which is usually faster than calculating L-dist(b,r).

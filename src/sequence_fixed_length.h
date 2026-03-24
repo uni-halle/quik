@@ -7,7 +7,7 @@
 
 #include "sequence.h"
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned LENGTH>
     class sequence_fixed_length : public sequence {

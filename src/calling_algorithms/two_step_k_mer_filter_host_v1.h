@@ -9,7 +9,7 @@
 #include "barcode_calling_algorithm.h"
 #include <string>
 
-namespace barcode_calling {
+namespace quik {
 
     template <unsigned k_large,
               unsigned k_small,

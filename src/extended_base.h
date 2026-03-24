@@ -9,7 +9,7 @@
 
 #include "dna_tables.h"
 
-namespace barcode_calling {
+namespace quik {
 
     class extended_base {
 
