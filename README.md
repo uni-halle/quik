@@ -75,7 +75,7 @@ Optional arguments:
                             A read is only assigned to a barcode if its
                             distance is smaller or equal than this integer.
 
-                            (default: 8)
+                            (default: 2.147.483.647 (INT32_MAX))
 
   -m, --method <STRING>     Barcode matching method
                             Possible values:
